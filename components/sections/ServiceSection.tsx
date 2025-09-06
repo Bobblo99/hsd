@@ -1,9 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Settings, Gauge, CheckCircle, Car, Mail, MessageCircle } from 'lucide-react';
+import React, { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  Settings,
+  Gauge,
+  CheckCircle,
+  Car,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,11 +26,11 @@ export default function ServiceSection() {
     const title = titleRef.current;
     const content = contentRef.current;
     const cta = ctaRef.current;
-    
+
     if (!section || !title || !content || !cta) return;
 
     // Clean up any existing ScrollTriggers
-    ScrollTrigger.getAll().forEach(trigger => {
+    ScrollTrigger.getAll().forEach((trigger) => {
       if (trigger.trigger === section) {
         trigger.kill();
       }
@@ -32,53 +39,81 @@ export default function ServiceSection() {
     // Main section animation
     ScrollTrigger.create({
       trigger: section,
-      start: 'top 75%',
+      start: "top 75%",
       onEnter: () => {
         const tl = gsap.timeline();
-        
+
         // Title character animation
-        const titleText = title.textContent || '';
-        title.innerHTML = titleText.split('').map(char => 
-          char === ' ' ? ' ' : `<span class="inline-block" style="transform: translateY(50px); opacity: 0;">${char}</span>`
-        ).join('');
-        
+        const titleText = title.textContent || "";
+        title.innerHTML = titleText
+          .split("")
+          .map((char) =>
+            char === " "
+              ? " "
+              : `<span class="inline-block" style="transform: translateY(50px); opacity: 0;">${char}</span>`
+          )
+          .join("");
+
         tl.to(title.children, {
           y: 0,
           opacity: 1,
           duration: 0.8,
           stagger: 0.04,
-          ease: "power3.out"
+          ease: "power3.out",
         })
-        .fromTo(content.children,
-          { y: 40, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power2.out" }, "-=0.4"
-        )
-        .fromTo(cta,
-          { y: 40, opacity: 0, scale: 0.95 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, "-=0.3"
-        );
-      }
+          .fromTo(
+            content.children,
+            { y: 40, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.6,
+              stagger: 0.1,
+              ease: "power2.out",
+            },
+            "-=0.4"
+          )
+          .fromTo(
+            cta,
+            { y: 40, opacity: 0, scale: 0.95 },
+            { y: 0, opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" },
+            "-=0.3"
+          );
+      },
     });
 
-    // Service cards animation
     servicesRef.current.forEach((service, index) => {
       if (service) {
         ScrollTrigger.create({
           trigger: service,
-          start: 'top 85%',
+          start: "top 85%",
           onEnter: () => {
-            gsap.fromTo(service,
+            gsap.fromTo(
+              service,
               { y: 50, opacity: 0, scale: 0.9 },
-              { y: 0, opacity: 1, scale: 1, duration: 0.6, delay: index * 0.1, ease: "power2.out" }
+              {
+                y: 0,
+                opacity: 1,
+                scale: 1,
+                duration: 0.2,
+                delay: index * 0.1,
+                ease: "power3.out",
+              }
             );
-          }
+          },
         });
       }
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => {
-        if (trigger.trigger === section || servicesRef.current.includes(trigger.trigger)) {
+      ScrollTrigger.getAll().forEach((trigger) => {
+        const serviceDivs = servicesRef.current.filter(
+          (el): el is HTMLDivElement => !!el
+        );
+        if (
+          trigger.trigger === section ||
+          serviceDivs.includes(trigger.trigger as HTMLDivElement)
+        ) {
           trigger.kill();
         }
       });
@@ -89,23 +124,23 @@ export default function ServiceSection() {
     {
       icon: <Settings size={40} />,
       title: "Reifen ab- und aufziehen",
-      description: "Professionelle Reifenmontage mit modernster Technik"
+      description: "Professionelle Reifenmontage mit modernster Technik",
     },
     {
       icon: <Gauge size={40} />,
       title: "Wuchten",
-      description: "Präzises Auswuchten für optimalen Fahrkomfort"
+      description: "Präzises Auswuchten für optimalen Fahrkomfort",
     },
     {
       icon: <CheckCircle size={40} />,
       title: "Schlagprüfung",
-      description: "Umfassende Felgenkontrolle auf Beschädigungen"
+      description: "Umfassende Felgenkontrolle auf Beschädigungen",
     },
     {
       icon: <Car size={40} />,
       title: "Montage am Fahrzeug",
-      description: "Komplette Montage direkt an Ihrem Fahrzeug"
-    }
+      description: "Komplette Montage direkt an Ihrem Fahrzeug",
+    },
   ];
 
   return (
@@ -116,7 +151,7 @@ export default function ServiceSection() {
     >
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black"></div>
-      
+
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-20">
           <h2
@@ -129,13 +164,13 @@ export default function ServiceSection() {
 
         <div ref={contentRef} className="text-center mb-20">
           <p className="text-xl text-gray-300 leading-relaxed max-w-4xl mx-auto mb-8">
-            Unser Service umfasst alle direkten Arbeiten am Fahrzeug und erstklassigen 
-            Kundenservice vor Ort. Wir sorgen für die perfekte Montage und optimale 
-            Performance Ihrer Räder.
+            Unser Service umfasst alle direkten Arbeiten am Fahrzeug und
+            erstklassigen Kundenservice vor Ort. Wir sorgen für die perfekte
+            Montage und optimale Performance Ihrer Räder.
           </p>
-          
+
           <p className="text-lg text-gray-400 leading-relaxed max-w-3xl mx-auto">
-            Mit modernster Ausrüstung und jahrelanger Erfahrung garantieren wir 
+            Mit modernster Ausrüstung und jahrelanger Erfahrung garantieren wir
             höchste Qualität bei allen Serviceleistungen.
           </p>
         </div>
@@ -145,19 +180,19 @@ export default function ServiceSection() {
           {services.map((service, index) => (
             <div
               key={service.title}
-              ref={el => el && (servicesRef.current[index] = el)}
+              ref={(el) => el && (servicesRef.current[index] = el)}
               className="group bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-red-500/50 transition-all duration-300 hover:bg-white/10 hover:scale-105 hover:-translate-y-2"
             >
               <div className="flex items-start gap-6">
                 <div className="text-red-500 transition-transform duration-300 group-hover:scale-110">
                   {service.icon}
                 </div>
-                
+
                 <div className="flex-1">
                   <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-red-500 transition-colors duration-300">
                     {service.title}
                   </h3>
-                  
+
                   <p className="text-gray-300 leading-relaxed">
                     {service.description}
                   </p>
@@ -168,15 +203,19 @@ export default function ServiceSection() {
         </div>
 
         {/* CTA Section */}
-        <div ref={ctaRef} className="text-center bg-white/5 rounded-2xl p-8 border border-white/10">
+        <div
+          ref={ctaRef}
+          className="text-center bg-white/5 rounded-2xl p-8 border border-white/10"
+        >
           <h3 className="text-3xl font-semibold mb-6 text-white">
             Service-Termin vereinbaren
           </h3>
-          
+
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Kontaktieren Sie uns für einen Termin oder eine unverbindliche Beratung
+            Kontaktieren Sie uns für einen Termin oder eine unverbindliche
+            Beratung
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a
               href="mailto:service@hsd-gmbh.com"
@@ -185,7 +224,7 @@ export default function ServiceSection() {
               <Mail size={20} />
               <span className="font-medium">E-Mail senden</span>
             </a>
-            
+
             <a
               href="https://wa.me/4917612345678"
               target="_blank"

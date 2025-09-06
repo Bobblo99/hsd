@@ -1,9 +1,18 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Paintbrush, Zap, Wrench, Sparkles, RotateCcw, Layers, Mail, MessageCircle } from 'lucide-react';
+import React, { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  Paintbrush,
+  Zap,
+  Wrench,
+  Sparkles,
+  RotateCcw,
+  Layers,
+  Mail,
+  MessageCircle,
+} from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -19,59 +28,82 @@ export default function DienstleistungSection() {
     const title = titleRef.current;
     const content = contentRef.current;
     const beforeAfter = beforeAfterRef.current;
-    
+
     if (!section || !title || !content) return;
 
     ScrollTrigger.create({
       trigger: section,
-      start: 'top 75%',
+      start: "top 75%",
       onEnter: () => {
         const tl = gsap.timeline();
-        
+
         // Enhanced title character reveal
-        const titleText = title.textContent || '';
-        title.innerHTML = titleText.split('').map(char => 
-          char === ' ' ? ' ' : `<span class="inline-block" style="transform: translateY(50px); opacity: 0;">${char}</span>`
-        ).join('');
-        
+        const titleText = title.textContent || "";
+        title.innerHTML = titleText
+          .split("")
+          .map((char) =>
+            char === " "
+              ? " "
+              : `<span class="inline-block" style="transform: translateY(50px); opacity: 0;">${char}</span>`
+          )
+          .join("");
+
         tl.to(title.children, {
           y: 0,
           opacity: 1,
           duration: 0.8,
           stagger: 0.04,
-          ease: "power3.out"
+          ease: "power3.out",
         })
-        .fromTo(content.children,
-          { y: 40, opacity: 0, scale: 0.95 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.7, stagger: 0.08, ease: "power3.out" }, "-=0.5"
-        )
-        .fromTo(beforeAfter,
-          { y: 50, opacity: 0, scale: 0.9 },
-          { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" }, "-=0.4"
-        );
-      }
+          .fromTo(
+            content.children,
+            { y: 40, opacity: 0, scale: 0.95 },
+            {
+              y: 0,
+              opacity: 1,
+              scale: 1,
+              duration: 0.7,
+              stagger: 0.08,
+              ease: "power3.out",
+            },
+            "-=0.5"
+          )
+          .fromTo(
+            beforeAfter,
+            { y: 50, opacity: 0, scale: 0.9 },
+            { y: 0, opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" },
+            "-=0.4"
+          );
+      },
     });
 
     servicesRef.current.forEach((service, index) => {
       if (service) {
         ScrollTrigger.create({
           trigger: service,
-          start: 'top 85%',
+          start: "top 85%",
           onEnter: () => {
-            gsap.fromTo(service,
+            gsap.fromTo(
+              service,
               { y: 50, opacity: 0, scale: 0.9 },
-              { y: 0, opacity: 1, scale: 1, duration: 0.7, delay: index * 0.08, ease: "power3.out" }
+              {
+                y: 0,
+                opacity: 1,
+                scale: 1,
+                duration: 0.2,
+                delay: index * 0.08,
+                ease: "power3.out",
+              }
             );
-          }
+          },
         });
-        
-        // Enhanced hover effects
+
         const handleMouseEnter = () => {
           gsap.to(service, {
             y: -10,
             scale: 1.05,
             duration: 0.4,
-            ease: "power3.out"
+            ease: "power3.out",
           });
         };
 
@@ -80,17 +112,17 @@ export default function DienstleistungSection() {
             y: 0,
             scale: 1,
             duration: 0.4,
-            ease: "power3.out"
+            ease: "power3.out",
           });
         };
 
-        service.addEventListener('mouseenter', handleMouseEnter);
-        service.addEventListener('mouseleave', handleMouseLeave);
+        service.addEventListener("mouseenter", handleMouseEnter);
+        service.addEventListener("mouseleave", handleMouseLeave);
       }
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, []);
 
@@ -98,33 +130,33 @@ export default function DienstleistungSection() {
     {
       icon: <Paintbrush size={32} />,
       title: "Nasslackierung",
-      description: "Hochwertige Lackierung für perfekte Optik und Schutz"
+      description: "Hochwertige Lackierung für perfekte Optik und Schutz",
     },
     {
       icon: <Zap size={32} />,
       title: "Pulverbeschichtung",
-      description: "Robuste und langlebige Oberflächenveredelung"
+      description: "Robuste und langlebige Oberflächenveredelung",
     },
     {
       icon: <Wrench size={32} />,
       title: "Bordsteinschäden reparieren",
-      description: "Professionelle Reparatur von Beschädigungen"
+      description: "Professionelle Reparatur von Beschädigungen",
     },
     {
       icon: <Sparkles size={32} />,
       title: "Glanzdrehen",
-      description: "Präzise Bearbeitung für perfekte Oberflächen"
+      description: "Präzise Bearbeitung für perfekte Oberflächen",
     },
     {
       icon: <RotateCcw size={32} />,
       title: "Entlacken",
-      description: "Schonende Entfernung alter Beschichtungen"
+      description: "Schonende Entfernung alter Beschichtungen",
     },
     {
       icon: <Layers size={32} />,
       title: "Sandstrahlen",
-      description: "Gründliche Oberflächenvorbereitung"
-    }
+      description: "Gründliche Oberflächenvorbereitung",
+    },
   ];
 
   return (
@@ -135,7 +167,7 @@ export default function DienstleistungSection() {
     >
       {/* Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-b from-black to-gray-900"></div>
-      
+
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-20">
           <h2
@@ -148,14 +180,16 @@ export default function DienstleistungSection() {
 
         <div ref={contentRef} className="text-center mb-20">
           <p className="text-xl text-gray-300 leading-relaxed max-w-4xl mx-auto mb-8">
-            Unsere Dienstleistungen umfassen spezialisierte handwerkliche Arbeiten zur 
-            Felgeninstandsetzung. Mit modernster Technik und jahrelanger Erfahrung 
-            bringen wir Ihre Felgen in neuwertige Qualität zurück.
+            Unsere Dienstleistungen umfassen spezialisierte handwerkliche
+            Arbeiten zur Felgeninstandsetzung. Mit modernster Technik und
+            jahrelanger Erfahrung bringen wir Ihre Felgen in neuwertige Qualität
+            zurück.
           </p>
-          
+
           <p className="text-lg text-gray-400 leading-relaxed max-w-3xl mx-auto">
-            Von der Reparatur kleinster Schäden bis zur kompletten Neuaufbereitung – 
-            wir bieten das komplette Spektrum professioneller Felgenaufbereitung.
+            Von der Reparatur kleinster Schäden bis zur kompletten
+            Neuaufbereitung – wir bieten das komplette Spektrum professioneller
+            Felgenaufbereitung.
           </p>
         </div>
 
@@ -171,11 +205,13 @@ export default function DienstleistungSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 text-white">
-                  <span className="bg-red-500 px-3 py-1 rounded-full text-sm font-medium">Vorher</span>
+                  <span className="bg-red-500 px-3 py-1 rounded-full text-sm font-medium">
+                    Vorher
+                  </span>
                 </div>
               </div>
             </div>
-            
+
             <div className="relative group">
               <div className="aspect-square rounded-xl overflow-hidden">
                 <img
@@ -185,7 +221,9 @@ export default function DienstleistungSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                 <div className="absolute bottom-4 left-4 text-white">
-                  <span className="bg-green-500 px-3 py-1 rounded-full text-sm font-medium">Nachher</span>
+                  <span className="bg-green-500 px-3 py-1 rounded-full text-sm font-medium">
+                    Nachher
+                  </span>
                 </div>
               </div>
             </div>
@@ -197,17 +235,15 @@ export default function DienstleistungSection() {
           {services.map((service, index) => (
             <div
               key={service.title}
-              ref={el => el && (servicesRef.current[index] = el)}
+              ref={(el) => el && (servicesRef.current[index] = el)}
               className="group bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-red-500/50 transition-all duration-300 hover:bg-white/10"
             >
-              <div className="text-red-500 mb-4">
-                {service.icon}
-              </div>
-              
+              <div className="text-red-500 mb-4">{service.icon}</div>
+
               <h3 className="text-lg font-semibold mb-3 text-white">
                 {service.title}
               </h3>
-              
+
               <p className="text-gray-300 leading-relaxed">
                 {service.description}
               </p>
@@ -220,11 +256,12 @@ export default function DienstleistungSection() {
           <h3 className="text-3xl font-semibold mb-6 text-white">
             Kostenvoranschlag anfordern
           </h3>
-          
+
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Senden Sie uns Bilder Ihrer Felgen für einen unverbindlichen Kostenvoranschlag
+            Senden Sie uns Bilder Ihrer Felgen für einen unverbindlichen
+            Kostenvoranschlag
           </p>
-          
+
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             <a
               href="mailto:aufbereitung@hsd-gmbh.com"
@@ -233,7 +270,7 @@ export default function DienstleistungSection() {
               <Mail size={20} />
               <span className="font-medium">E-Mail mit Bildern</span>
             </a>
-            
+
             <a
               href="https://wa.me/4917612345678"
               target="_blank"
