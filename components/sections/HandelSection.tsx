@@ -213,7 +213,9 @@ export default function HandelSection() {
           ].map((service, index) => (
             <div
               key={service.title}
-              ref={(el) => el && (cardsRef.current[index] = el)}
+              ref={(el) => {
+                if (el) cardsRef.current[index] = el;
+              }}
               className="group bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-red-500/50 transition-all duration-300 hover:bg-white/10"
             >
               <div className="text-red-500 mb-4">{service.icon}</div>

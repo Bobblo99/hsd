@@ -1,61 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, CheckCircle, Package } from "lucide-react";
-import { USE_DUMMY_DATA } from "@/lib/config";
-import { getCustomerStats } from "@/lib/db/felgen-database";
-import { getCustomerStats as getDummyCustomerStats } from "@/lib/db/dummy-database";
+import { useCustomerStats } from "@/hooks/useCustomerStats";
 
-interface CustomerStats {
-  totalCustomers: number;
-  eingegangen: number;
-  inBearbeitung: number;
-  fertiggestellt: number;
-  abgeholt: number;
-}
-
-interface CustomerStatsProps {
-  refreshTrigger?: number;
-}
-
-export function CustomerStats({ refreshTrigger }: CustomerStatsProps) {
-  const [stats, setStats] = useState<CustomerStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadStats();
-    
-    // Auto-refresh every 10 seconds
-    const interval = setInterval(loadStats, 10000);
-    
-    return () => clearInterval(interval);
-  }, [refreshTrigger]);
-
-  const loadStats = async () => {
-    try {
-      const data = USE_DUMMY_DATA 
-        ? await getDummyCustomerStats()
-        : await getCustomerStats();
-      setStats(data);
-    } catch (error) {
-      console.error("Fehler beim Laden der Statistiken:", error);
-      setStats({
-        totalCustomers: 0,
-        eingegangen: 0,
-        inBearbeitung: 0,
-        fertiggestellt: 0,
-        abgeholt: 0,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export function CustomerStats() {
+  const { stats, isLoading } = useCustomerStats();
 
   if (isLoading) {
     return (
@@ -74,12 +24,10 @@ export function CustomerStats({ refreshTrigger }: CustomerStatsProps) {
     );
   }
 
-  if (!stats) return null;
-
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
       <Card className="bg-white/5 border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6">
           <CardTitle className="text-xs md:text-sm font-medium text-gray-300">
             Gesamt Kunden
           </CardTitle>
@@ -89,15 +37,11 @@ export function CustomerStats({ refreshTrigger }: CustomerStatsProps) {
           <div className="text-xl md:text-2xl font-bold text-white">
             {stats.totalCustomers}
           </div>
-          <p className="text-xs text-gray-400 hidden sm:block">
-            Alle Anfragen
-          </p>
-          <p className="text-xs text-gray-400 sm:hidden">Total</p>
         </CardContent>
       </Card>
 
       <Card className="bg-white/5 border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6">
           <CardTitle className="text-xs md:text-sm font-medium text-gray-300">
             Eingegangen
           </CardTitle>
@@ -107,15 +51,11 @@ export function CustomerStats({ refreshTrigger }: CustomerStatsProps) {
           <div className="text-xl md:text-2xl font-bold text-white">
             {stats.eingegangen}
           </div>
-          <p className="text-xs text-gray-400 hidden sm:block">
-            Neue Anfragen
-          </p>
-          <p className="text-xs text-gray-400 sm:hidden">Neu</p>
         </CardContent>
       </Card>
 
       <Card className="bg-white/5 border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6">
           <CardTitle className="text-xs md:text-sm font-medium text-gray-300">
             In Bearbeitung
           </CardTitle>
@@ -125,15 +65,11 @@ export function CustomerStats({ refreshTrigger }: CustomerStatsProps) {
           <div className="text-xl md:text-2xl font-bold text-white">
             {stats.inBearbeitung}
           </div>
-          <p className="text-xs text-gray-400 hidden sm:block">
-            Aktive Aufträge
-          </p>
-          <p className="text-xs text-gray-400 sm:hidden">Aktiv</p>
         </CardContent>
       </Card>
 
       <Card className="bg-white/5 border-white/10">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+        <CardHeader className="flex flex-row items-center justify-between pb-2 p-3 md:p-6">
           <CardTitle className="text-xs md:text-sm font-medium text-gray-300">
             Fertiggestellt
           </CardTitle>
@@ -143,10 +79,6 @@ export function CustomerStats({ refreshTrigger }: CustomerStatsProps) {
           <div className="text-xl md:text-2xl font-bold text-white">
             {stats.fertiggestellt}
           </div>
-          <p className="text-xs text-gray-400 hidden sm:block">
-            Abholbereit
-          </p>
-          <p className="text-xs text-gray-400 sm:hidden">Fertig</p>
         </CardContent>
       </Card>
     </div>

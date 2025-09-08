@@ -180,7 +180,9 @@ export default function ServiceSection() {
           {services.map((service, index) => (
             <div
               key={service.title}
-              ref={(el) => el && (servicesRef.current[index] = el)}
+              ref={(el) => {
+                if (el) servicesRef.current[index] = el;
+              }}
               className="group bg-white/5 rounded-2xl p-6 border border-white/10 hover:border-red-500/50 transition-all duration-300 hover:bg-white/10 hover:scale-105 hover:-translate-y-2"
             >
               <div className="flex items-start gap-6">

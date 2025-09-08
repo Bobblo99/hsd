@@ -1,31 +1,26 @@
-import { databases, Query, DATABASE_ID, storage } from '../appwrite';
-import { ID } from 'appwrite';
-import { CUSTOMERS_COLLECTION_ID, BUCKET_ID } from '../appwrite';
+import { Customer, CustomerStats } from "@/types/customers";
+import { DATABASE_ID, CUSTOMERS_COLLECTION_ID, storage } from "../appwrite";
+import { ID, Query } from "appwrite";
 
-export interface Customer {
-  $id?: string;
-  name: string;
-  email: string;
-  phone: string;
-  felgeBeschaedigt: 'ja' | 'nein';
-  reparaturArt: 'lackieren' | 'polieren' | 'schweissen' | 'pulverbeschichten';
-  schadensBeschreibung: string;
-  bildIds: string[];
-  status: 'eingegangen' | 'in-bearbeitung' | 'fertiggestellt' | 'abgeholt';
-  createdAt: string;
-  updatedAt: string;
-}
+import { databases, BUCKET_ID } from "../appwrite";
 
-export interface CustomerStats {
-  totalCustomers: number;
-  eingegangen: number;
-  inBearbeitung: number;
-  fertiggestellt: number;
-  abgeholt: number;
-}
+const mapToCustomer = (doc: any): Customer => ({
+  $id: doc.$id,
+  name: doc.name,
+  email: doc.email,
+  phone: doc.phone,
+  rimDamaged: doc.felgeBeschaedigt,
+  repairType: doc.reparaturArt,
+  damageDescription: doc.schadensBeschreibung,
+  imageIds: doc.bildIds || [],
+  status: doc.status,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+});
 
-// Customer CRUD Operations
-export const createCustomer = async (customer: Omit<Customer, '$id' | 'createdAt' | 'updatedAt'>): Promise<Customer> => {
+export const createCustomer = async (
+  customer: Omit<Customer, "$id" | "createdAt" | "updatedAt">
+): Promise<Customer> => {
   const now = new Date().toISOString();
   const newCustomer = {
     ...customer,
@@ -33,80 +28,76 @@ export const createCustomer = async (customer: Omit<Customer, '$id' | 'createdAt
     updatedAt: now,
   };
 
-  const response = await databases.createDocument(
+  const doc = await databases.createDocument(
     DATABASE_ID,
     CUSTOMERS_COLLECTION_ID,
     ID.unique(),
     newCustomer
   );
-
-  return response as Customer;
+  return mapToCustomer(doc);
 };
 
-export const getCustomers = async (filter?: 'all' | 'eingegangen' | 'in-bearbeitung' | 'fertiggestellt'): Promise<Customer[]> => {
+// LIST
+export const getCustomers = async (
+  filter?:
+    | "all"
+    | "eingegangen"
+    | "in-bearbeitung"
+    | "fertiggestellt"
+    | "abgeholt"
+): Promise<Customer[]> => {
   try {
-    let queries = [Query.orderDesc('createdAt')];
+    const queries: any[] = [Query.orderDesc("createdAt")];
+    if (filter && filter !== "all") queries.push(Query.equal("status", filter));
 
-    if (filter && filter !== 'all') {
-      queries.push(Query.equal('status', filter));
-    }
-
-    const response = await databases.listDocuments(
+    const res = await databases.listDocuments(
       DATABASE_ID,
       CUSTOMERS_COLLECTION_ID,
       queries
     );
-
-    return response.documents as Customer[];
+    return res.documents.map(mapToCustomer);
   } catch (error) {
-    console.error('Error fetching customers:', error);
+    console.error("Error fetching customers:", error);
     return [];
   }
 };
 
+// GET SINGLE
 export const getCustomer = async (id: string): Promise<Customer> => {
-  const response = await databases.getDocument(
+  const doc = await databases.getDocument(
     DATABASE_ID,
     CUSTOMERS_COLLECTION_ID,
     id
   );
-
-  return response as Customer;
+  return mapToCustomer(doc);
 };
 
-export const updateCustomer = async (id: string, updates: Partial<Customer>): Promise<Customer> => {
-  const updatedData = {
-    ...updates,
-    updatedAt: new Date().toISOString(),
-  };
-
-  const response = await databases.updateDocument(
+// UPDATE
+export const updateCustomer = async (
+  id: string,
+  updates: Partial<Customer>
+): Promise<Customer> => {
+  const doc = await databases.updateDocument(
     DATABASE_ID,
     CUSTOMERS_COLLECTION_ID,
     id,
-    updatedData
+    {
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
   );
-
-  return response as Customer;
+  return mapToCustomer(doc);
 };
 
+// DELETE
 export const deleteCustomer = async (id: string): Promise<void> => {
-  await databases.deleteDocument(
-    DATABASE_ID,
-    CUSTOMERS_COLLECTION_ID,
-    id
-  );
+  await databases.deleteDocument(DATABASE_ID, CUSTOMERS_COLLECTION_ID, id);
 };
 
 // File Upload
 export const uploadImage = async (file: File): Promise<string> => {
-  const response = await storage.createFile(
-    BUCKET_ID,
-    ID.unique(),
-    file
-  );
-
-  return response.$id;
+  const res = await storage.createFile(BUCKET_ID, ID.unique(), file);
+  return res.$id;
 };
 
 export const getImageUrl = (fileId: string): string => {
@@ -120,13 +111,22 @@ export const deleteImage = async (fileId: string): Promise<void> => {
 // Statistics
 export const getCustomerStats = async (): Promise<CustomerStats> => {
   try {
-    const [total, eingegangen, inBearbeitung, fertiggestellt, abgeholt] = await Promise.all([
-      databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID),
-      databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [Query.equal('status', 'eingegangen')]),
-      databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [Query.equal('status', 'in-bearbeitung')]),
-      databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [Query.equal('status', 'fertiggestellt')]),
-      databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [Query.equal('status', 'abgeholt')])
-    ]);
+    const [total, eingegangen, inBearbeitung, fertiggestellt, abgeholt] =
+      await Promise.all([
+        databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID),
+        databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [
+          Query.equal("status", "eingegangen"),
+        ]),
+        databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [
+          Query.equal("status", "in-bearbeitung"),
+        ]),
+        databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [
+          Query.equal("status", "fertiggestellt"),
+        ]),
+        databases.listDocuments(DATABASE_ID, CUSTOMERS_COLLECTION_ID, [
+          Query.equal("status", "abgeholt"),
+        ]),
+      ]);
 
     return {
       totalCustomers: total.total,
@@ -136,7 +136,7 @@ export const getCustomerStats = async (): Promise<CustomerStats> => {
       abgeholt: abgeholt.total,
     };
   } catch (error) {
-    console.error('Error fetching customer stats:', error);
+    console.error("Error fetching customer stats:", error);
     return {
       totalCustomers: 0,
       eingegangen: 0,
@@ -150,31 +150,33 @@ export const getCustomerStats = async (): Promise<CustomerStats> => {
 // Export to CSV
 export const exportCustomersToCSV = (customers: Customer[]): string => {
   const headers = [
-    'Name',
-    'E-Mail',
-    'Telefon',
-    'Felge beschädigt',
-    'Reparatur Art',
-    'Beschreibung',
-    'Status',
-    'Erstellt am',
-    'Aktualisiert am'
+    "Name",
+    "E-Mail",
+    "Telefon",
+    "Felge beschädigt",
+    "Reparatur Art",
+    "Beschreibung",
+    "Status",
+    "Erstellt am",
+    "Aktualisiert am",
   ];
 
   const csvContent = [
-    headers.join(','),
-    ...customers.map(customer => [
-      `"${customer.name}"`,
-      `"${customer.email}"`,
-      `"${customer.phone}"`,
-      `"${customer.felgeBeschaedigt}"`,
-      `"${customer.reparaturArt}"`,
-      `"${customer.schadensBeschreibung.replace(/"/g, '""')}"`,
-      `"${customer.status}"`,
-      `"${new Date(customer.createdAt).toLocaleDateString('de-DE')}"`,
-      `"${new Date(customer.updatedAt).toLocaleDateString('de-DE')}"`
-    ].join(','))
-  ].join('\n');
+    headers.join(","),
+    ...customers.map((c) =>
+      [
+        `"${c.name}"`,
+        `"${c.email}"`,
+        `"${c.phone}"`,
+        `"${c.rimDamaged}"`,
+        `"${c.repairType}"`,
+        `"${c.damageDescription.replace(/"/g, '""')}"`,
+        `"${c.status}"`,
+        `"${new Date(c.createdAt).toLocaleDateString("de-DE")}"`,
+        `"${new Date(c.updatedAt).toLocaleDateString("de-DE")}"`,
+      ].join(",")
+    ),
+  ].join("\n");
 
   return csvContent;
 };

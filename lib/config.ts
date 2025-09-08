@@ -1,8 +1,7 @@
-
-export const USE_DUMMY_DATA = true; 
+export const USE_DUMMY_DATA = false;
 
 // Dummy Login
 export const DUMMY_CREDENTIALS = {
-  email: 'admin@hsd-gmbh.com',
-  password: 'demo123'
+  email: "admin@hsd-gmbh.com",
+  password: "demo123",
 };
