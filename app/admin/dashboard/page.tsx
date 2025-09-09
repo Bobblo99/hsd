@@ -18,8 +18,8 @@ import {
   CustomerStats,
   type TabItem,
 } from "@/components/admin/dashboard";
-import { useCustomers } from "@/hooks/useCustomers";
 import { Customer } from "@/types/customers";
+import { useCustomersV2 } from "@/hooks/v2/useCustomersV2";
 
 export default function FelgenAdminDashboard() {
   const [isAuthenticatedState, setIsAuthenticatedState] = useState(false);
@@ -27,14 +27,15 @@ export default function FelgenAdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const router = useRouter();
   const { toast } = useToast();
+
   const {
     data,
     isLoading: loadingCustomers,
     isError,
     isSuccess,
     refetch,
-  } = useCustomers();
-
+  } = useCustomersV2();
+  console.log("V2 Customers:", data);
   useEffect(() => {
     checkAuth();
   }, [router]);

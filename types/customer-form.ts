@@ -100,6 +100,9 @@ export const customerFormSchema = z.object({
   status: statusValues.default("eingegangen"),
   createdAt: z.string(),
   updatedAt: z.string(),
+
+  // images
+  photos: z.array(z.instanceof(File)).optional(),
 });
 
 export type CustomerFormData = z.infer<typeof customerFormSchema>;

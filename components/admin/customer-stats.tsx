@@ -2,10 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, CheckCircle, Package } from "lucide-react";
-import { useCustomerStats } from "@/hooks/useCustomerStats";
+import { useCustomerStatsV2 } from "@/hooks/v2/useCustomerStatsV2";
 
 export function CustomerStats() {
-  const { stats, isLoading } = useCustomerStats();
+  const { stats, isLoading, isError } = useCustomerStatsV2();
 
   if (isLoading) {
     return (

@@ -19,7 +19,6 @@ import {
   Package,
 } from "lucide-react";
 import { Customer } from "@/types/customers";
-import { useUpdateCustomer } from "@/hooks/useUpdateCustomer";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,8 +27,8 @@ import {
 } from "@radix-ui/react-dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useUpdateCustomerV2 } from "@/hooks/v2/useUpdateCustomerV2";
 
 interface CustomerListProps {
   customers: Customer[];
@@ -102,7 +101,7 @@ export function CustomerList({
           {customers.map((c) => (
             <TableRow key={c.$id}>
               <TableCell>
-                <div className="text-white font-medium">{c.name}</div>
+                <div className="text-white font-medium">{c.firstName}</div>
                 <div className="text-gray-400 text-sm">{c.email}</div>
               </TableCell>
               <TableCell>
@@ -159,19 +158,26 @@ interface StatusMenuProps {
 }
 
 export function StatusMenu({ customer }: StatusMenuProps) {
-  const { mutate: updateCustomer } = useUpdateCustomer();
   const { toast } = useToast();
   const menuRef = useRef<HTMLDivElement | null>(null);
 
+  const { mutate: updateCustomerV2, isPending } = useUpdateCustomerV2();
+
   const handleChange = (status: Customer["status"]) => {
-    updateCustomer(
-      { id: customer.$id!, updates: { status } },
+    if (!customer?.$id) return;
+
+    updateCustomerV2(
+      { id: customer.$id, updates: { status } },
       {
-        onSuccess: () => {
+        onSuccess: (updated) => {
+          const name =
+            updated.fullName ||
+            [updated.firstName, updated.lastName].filter(Boolean).join(" ") ||
+            "Kunde";
           toast({
             variant: "success",
             title: "Status geändert",
-            description: `Der Auftrag von ${customer.name} ist jetzt "${status}".`,
+            description: `Der Auftrag von ${name} ist jetzt "${status}".`,
           });
         },
         onError: () => {

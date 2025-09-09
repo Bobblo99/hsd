@@ -9,6 +9,8 @@
     "postbuild": "next-sitemap",
     "lint": "next lint",
     "setup:db": "env-cmd -f env/.env.local ts-node --transpile-only scripts/setupCustomer.ts",
+    "setupv2:db": "env-cmd -f env/.env.local ts-node --transpile-only scripts/setupCustomerV2.ts",
+    "insertv2:db": "env-cmd -f env/.env.local ts-node --transpile-only scripts/insertCustomerV2.ts",
     "insert:db": "env-cmd -f env/.env.local ts-node --transpile-only scripts/insertCustomer.ts",
     "reset:limits": "docker exec -it appwrite-redis redis-cli FLUSHALL"
   },

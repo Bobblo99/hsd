@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import {
   Printer,
   FileDown,
@@ -26,20 +25,7 @@ import {
   Wrench,
   QrCode,
 } from "lucide-react";
-
-interface Customer {
-  $id?: string;
-  name: string;
-  email: string;
-  phone: string;
-  rimDamaged: "ja" | "nein";
-  repairType: "lackieren" | "polieren" | "schweissen" | "pulverbeschichten";
-  damageDescription: string;
-  imageIds: string[];
-  status: "eingegangen" | "in-bearbeitung" | "fertiggestellt" | "abgeholt";
-  createdAt: string;
-  updatedAt: string;
-}
+import { Customer } from "@/types/customers";
 
 interface CustomerPrintDialogProps {
   customer: Customer;
@@ -57,28 +43,66 @@ interface ImageSelection {
   [key: string]: boolean;
 }
 
+/** ---------- Helpers to keep UI intact with new schema ---------- */
+function safeName(c: any) {
+  return (
+    c?.fullName ||
+    c?.name ||
+    [c?.firstName, c?.lastName].filter(Boolean).join(" ") ||
+    "Unbekannt"
+  );
+}
+function safeCreatedAt(c: any) {
+  // Appwrite system fields first
+  const raw = c?.$createdAt || c?.createdAt;
+  try {
+    return raw ? new Date(raw).toLocaleDateString("de-DE") : "-";
+  } catch {
+    return "-";
+  }
+}
+function safeDescription(c: any) {
+  // Old field, or aggregated notes if present
+  return c?.damageDescription || c?.allNotes || "";
+}
+function safeRepairType(c: any) {
+  // In neuem Modell liegen Details in customerServices; falls nicht mitgeladen, fallback:
+  return c?.repairType || c?.rimsFinish || c?.primaryService || "-";
+}
+function safeRimDamaged(c: any): "ja" | "nein" | "-" {
+  const v = c?.rimDamaged ?? c?.rimsHasBent;
+  if (v === "ja" || v === "nein") return v;
+  return "-";
+}
+function extractImageUrls(c: any): string[] {
+  // Prefer already-resolved URLs
+  const fromIds = Array.isArray(c?.imageIds) ? c.imageIds : [];
+  const fromImages = Array.isArray(c?.images) ? c.images : [];
+  const fromFiles = Array.isArray(c?.files)
+    ? c.files.map((f: any) => f?.previewUrl || f?.url || f).filter(Boolean)
+    : [];
+
+  // Flatten to strings
+  const asStrings = [...fromIds, ...fromImages, ...fromFiles]
+    .filter(Boolean)
+    .map((x: any) => String(x));
+
+  return asStrings;
+}
+/** -------------------------------------------------------------- */
+
 const CustomerPrintContent = React.forwardRef<
   HTMLDivElement,
   { customer: Customer; options: PrintOptions; selectedImages: string[] }
 >(({ customer, options, selectedImages }, ref) => {
   const getStatusColor = (status: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       eingegangen: "#f59e0b",
       "in-bearbeitung": "#3b82f6",
       fertiggestellt: "#10b981",
       abgeholt: "#6b7280",
     };
-    return colors[status as keyof typeof colors] || "#6b7280";
-  };
-
-  const getReparaturLabel = (art: string) => {
-    const labels = {
-      lackieren: "Lackierung",
-      polieren: "Polieren",
-      schweissen: "Schweißen",
-      pulverbeschichten: "Pulverbeschichtung",
-    };
-    return labels[art as keyof typeof labels] || art;
+    return colors[status] || "#6b7280";
   };
 
   return (
@@ -102,16 +126,19 @@ const CustomerPrintContent = React.forwardRef<
         </div>
         <div className="text-right">
           <div className="text-2xl font-bold mb-2">
-            AUFTRAG #{customer.$id?.slice(-6) || "N/A"}
+            AUFTRAG #{customer?.$id?.slice(-6) || "N/A"}
           </div>
           <div className="text-sm text-gray-600">
-            Erstellt: {new Date(customer.createdAt).toLocaleDateString("de-DE")}
+            Erstellt: {safeCreatedAt(customer)}
           </div>
           <div
             className="inline-block px-3 py-1 rounded-full text-white font-semibold mt-2"
-            style={{ backgroundColor: getStatusColor(customer.status) }}
+            style={{ backgroundColor: getStatusColor(customer?.status) }}
           >
-            {customer.status.toUpperCase().replace("-", " ")}
+            {(customer?.status || "-")
+              .toString()
+              .toUpperCase()
+              .replace("-", " ")}
           </div>
         </div>
       </div>
@@ -126,18 +153,18 @@ const CustomerPrintContent = React.forwardRef<
                 KUNDENDATEN
               </h2>
               <div className="space-y-2">
-                <div className="text-xl font-bold">{customer.name}</div>
+                <div className="text-xl font-bold">{safeName(customer)}</div>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="h-4 w-4 text-gray-500" />
-                  {customer.email}
+                  {customer?.email || "-"}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Phone className="h-4 w-4 text-gray-500" />
-                  {customer.phone}
+                  {customer?.phone || "-"}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-gray-500" />
-                  {new Date(customer.createdAt).toLocaleDateString("de-DE")}
+                  {safeCreatedAt(customer)}
                 </div>
               </div>
             </div>
@@ -152,32 +179,30 @@ const CustomerPrintContent = React.forwardRef<
               <div className="space-y-2">
                 <div>
                   <span className="font-semibold">Reparatur:</span>{" "}
-                  {getReparaturLabel(customer.repairType)}
+                  {safeRepairType(customer)}
                 </div>
                 <div>
                   <span className="font-semibold">Beschädigt:</span>
-                  <span
-                    className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
-                      customer.rimDamaged === "ja"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {customer.rimDamaged === "ja" ? "JA" : "NEIN"}
-                  </span>
+                  {(() => {
+                    const rd = safeRimDamaged(customer);
+                    if (rd === "-") return <span className="ml-2">-</span>;
+                    const isJa = rd === "ja";
+                    return (
+                      <span
+                        className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
+                          isJa
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {isJa ? "JA" : "NEIN"}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
           )}
-
-          {/* {options.lagerId && (
-            <div className="bg-yellow-50 p-4 rounded-lg border">
-              <h2 className="text-lg font-bold mb-3">LAGER-ID</h2>
-              <div className="text-3xl font-mono font-bold text-center py-4 bg-white border-2 border-dashed border-yellow-400 rounded">
-                {customer.$id?.slice(-8).toUpperCase() || "XXXXXXXX"}
-              </div>
-            </div>
-          )} */}
 
           {options.qrCode && (
             <div className="bg-gray-50 p-4 rounded-lg border text-center">
@@ -193,7 +218,7 @@ const CustomerPrintContent = React.forwardRef<
             <div className="bg-gray-50 p-4 rounded-lg border h-full">
               <h2 className="text-lg font-bold mb-3">SCHADENSBESCHREIBUNG</h2>
               <div className="text-sm leading-relaxed h-[calc(100%-40px)] overflow-hidden">
-                {customer.damageDescription || "Keine Beschreibung vorhanden"}
+                {safeDescription(customer) || "Keine Beschreibung vorhanden"}
               </div>
             </div>
           )}
@@ -238,7 +263,6 @@ const CustomerPrintContent = React.forwardRef<
     </div>
   );
 });
-
 CustomerPrintContent.displayName = "CustomerPrintContent";
 
 export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
@@ -251,22 +275,25 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
     qrCode: false,
   });
 
+  // ---- robust: Bildquellen aus neuem/alten Schema extrahieren ----
+  const allImageUrls = React.useMemo(
+    () => extractImageUrls(customer),
+    [customer]
+  );
+
   const [imageSelection, setImageSelection] = useState<ImageSelection>(() => {
     const initial: ImageSelection = {};
-    customer.imageIds?.slice(0, 4).forEach((id, index) => {
-      initial[id] = index < 2; // Erste 2 Bilder standardmäßig ausgewählt
+    allImageUrls.slice(0, 4).forEach((url, index) => {
+      initial[url] = index < 2; // erste 2 standardmäßig
     });
     return initial;
   });
 
   const componentRef = React.useRef<HTMLDivElement>(null);
-
-  const selectedImages =
-    customer.imageIds?.filter((id) => imageSelection[id]) || [];
+  const selectedImages = allImageUrls.filter((u) => imageSelection[u]);
 
   const handlePrint = () => {
     if (!componentRef.current) return;
-
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
@@ -274,19 +301,11 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Kunde ${customer.name} - Druckvorlage</title>
+          <title>Kunde ${safeName(customer)} - Druckvorlage</title>
           <style>
-            @page { 
-              size: A4 landscape; 
-              margin: 0; 
-            }
-            body { 
-              margin: 0; 
-              font-family: Arial, sans-serif; 
-            }
-            @media print {
-              body { -webkit-print-color-adjust: exact; }
-            }
+            @page { size: A4 landscape; margin: 0; }
+            body { margin: 0; font-family: Arial, sans-serif; }
+            @media print { body { -webkit-print-color-adjust: exact; } }
           </style>
         </head>
         <body>
@@ -305,15 +324,13 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
 
   const handlePDF = async () => {
     if (!componentRef.current) return;
-
     try {
       const html2pdf = (await import("html2pdf.js")).default;
-
       const opts = {
         margin: 0,
-        filename: `kunde-${customer.name}-${
-          new Date().toISOString().split("T")[0]
-        }.pdf`,
+        filename: `kunde-${(safeName(customer) || "Unbekannt")
+          .replace(/\s+/g, "-")
+          .toLowerCase()}-${new Date().toISOString().split("T")[0]}.pdf`,
         image: { type: "jpeg", quality: 0.98 },
         html2canvas: {
           scale: 2,
@@ -321,13 +338,8 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
           letterRendering: true,
           allowTaint: true,
         },
-        jsPDF: {
-          unit: "mm",
-          format: "a4",
-          orientation: "landscape",
-        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "landscape" },
       };
-
       html2pdf().set(opts).from(componentRef.current).save();
     } catch (error) {
       console.error("PDF Export Error:", error);
@@ -355,28 +367,27 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Inhaltsoptionen */}
+            {/* Inhalt */}
             <div>
               <h3 className="text-lg font-semibold text-white mb-3">
                 Inhalt auswählen
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 {Object.entries(options).map(([key, value]) => {
-                  const labels = {
+                  const labels: Record<string, string> = {
                     kundenInfo: "Kundendaten",
                     serviceDetails: "Service Details",
                     beschreibung: "Schadensbeschreibung",
                     bilder: "Bilder",
                     qrCode: "QR-Code",
                   };
-
                   return (
                     <div key={key} className="flex items-center space-x-2">
                       <Checkbox
                         id={key}
                         checked={value}
                         onCheckedChange={(checked) =>
-                          setOptions((prev) => ({ ...prev, [key]: checked }))
+                          setOptions((prev) => ({ ...prev, [key]: !!checked }))
                         }
                         className="border-white/20"
                       />
@@ -384,7 +395,7 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
                         htmlFor={key}
                         className="text-gray-300 cursor-pointer"
                       >
-                        {labels[key as keyof typeof labels]}
+                        {labels[key] || key}
                       </Label>
                     </div>
                   );
@@ -395,25 +406,24 @@ export function CustomerPrintDialog({ customer }: CustomerPrintDialogProps) {
             <Separator className="bg-white/10" />
 
             {/* Bildauswahl */}
-            {options.bilder && customer.imageIds?.length > 0 && (
+            {options.bilder && allImageUrls.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-white mb-3">
                   Bilder auswählen (max. 4)
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
-                  {customer.imageIds.slice(0, 6).map((img, i) => (
+                  {allImageUrls.slice(0, 6).map((img, i) => (
                     <div key={img} className="relative">
                       <div className="flex items-center space-x-2">
                         <Checkbox
                           id={`img-${i}`}
-                          checked={imageSelection[img] || false}
+                          checked={!!imageSelection[img]}
                           onCheckedChange={(checked) => {
                             const selectedCount =
                               Object.values(imageSelection).filter(
                                 Boolean
                               ).length;
                             if (checked && selectedCount >= 4) return;
-
                             setImageSelection((prev) => ({
                               ...prev,
                               [img]: !!checked,

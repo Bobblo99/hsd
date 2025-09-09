@@ -1,43 +1,56 @@
 // types/customer-collection.ts
 export interface CustomerCollection {
-  $id?: string;
-
   // contact
   firstName: string;
   lastName: string;
-  fullName: string; // firstName + lastName
+  fullName: string;
   street: string;
   houseNumber: string;
   zipCode: string;
   city: string;
-  fullAddress: string; // zusammengesetzt
+  fullAddress: string;
   email: string;
   phone: string;
 
   // services
-  services: string[]; // ["rims", "tire-service", ...]
+  services: ("rims" | "tires-purchase" | "tire-service")[];
 
-  // rims
-  rimsData?: string; // JSON
+  // rims (optional)
+  rimsData?: string; // JSON string
   rimsCount?: string;
   rimsHasBent?: "ja" | "nein";
-  rimsFinish?: string; // "einfarbig" | ...
-  rimsColor?: string; // color oder combination
-  rimsSticker?: string; // z.B. "audi-sport"
+  rimsFinish?:
+    | "einfarbig"
+    | "zweifarbig"
+    | "chrom"
+    | "smart-repair"
+    | "glanzdrehen";
+  rimsColor?: string;
+  rimsSticker?:
+    | "audi-sport"
+    | "rs-audi"
+    | "m-bmw"
+    | "kein-aufkleber"
+    | "sonstiges";
 
-  // tires purchase
-  tiresPurchaseData?: string; // JSON
+  // tires purchase (optional)
+  tiresPurchaseData?: string; // JSON string
   tiresQuantity?: string;
   tiresSize?: string;
-  tiresUsage?: string; // "sommer" | ...
-  tiresBrand?: string; // "gezielt"→targetBrand, sonst Kategorie
+  tiresUsage?: "sommer" | "winter" | "ganzjahr";
+  tiresBrand?: string;
 
-  // tire service
-  tireServiceData?: string; // JSON
+  // tire service (optional)
+  tireServiceData?: string; // JSON string
   mountService?: string;
 
-  // combined notes
+  // notes (combined)
   allNotes?: string;
+
+  // images
+  images: File[];
+  imageCount: number;
+  hasImages: boolean;
 
   // meta
   status: "eingegangen" | "in-bearbeitung" | "fertiggestellt" | "abgeholt";

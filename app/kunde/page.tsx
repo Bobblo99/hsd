@@ -14,10 +14,10 @@ import {
   ServiceSelectionStep,
   ServiceType,
 } from "@/components/customerForm/ServiceSelectionStep";
-import { createCustomerFromForm } from "@/lib/mappers/createCustomerFromForm";
 import { validateFormData } from "@/lib/validation/validateCustomerForm";
 import { CustomerFormData } from "@/types/customer-form";
 import { PhotoUploadStep } from "@/components/customerForm/PhotoUploadStep";
+import { createCustomerPayloadsFromForm } from "@/lib/mappers/createCustomerFromForm";
 
 export default function KundePage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -135,7 +135,7 @@ export default function KundePage() {
       }
 
       // Create customer object for database
-      const customerData = createCustomerFromForm(completeFormData);
+      const customerData = createCustomerPayloadsFromForm(completeFormData);
 
       console.log("Submitting customer data:", customerData);
 

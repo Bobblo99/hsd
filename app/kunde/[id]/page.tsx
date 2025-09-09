@@ -5,13 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Loader2,
   Lock,
-  Printer,
-  FileDown,
   ArrowLeft,
-  User,
   Mail,
   Phone,
-  MessageCircle,
   Calendar,
   Clock,
   Eye,
@@ -24,8 +20,6 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { isAuthenticated } from "@/lib/auth";
-import { useCustomer } from "@/hooks/useCustomer";
-
 import { CustomerPrintDialog } from "@/components/CustomerPrintDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,15 +33,50 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import type { Customer } from "@/types/customers";
+import { useCustomerV2 } from "@/hooks/v2/useCustomerV2";
+
+/* ----------------- helpers: nur Daten, kein UI-Change ----------------- */
+function safeName(c: Partial<Customer> & Record<string, any>) {
+  return (
+    c.fullName ||
+    [c.firstName, c.lastName].filter(Boolean).join(" ") ||
+    (c as any).name ||
+    "Unbekannt"
+  );
+}
+function safeCreatedAt(c: Partial<Customer> & Record<string, any>) {
+  const raw = (c as any)?.$createdAt || (c as any)?.createdAt;
+  try {
+    return raw ? new Date(raw).toLocaleDateString("de-DE") : "-";
+  } catch {
+    return "-";
+  }
+}
+function safeDescription(c: Partial<Customer> & Record<string, any>) {
+  return (c as any).damageDescription || (c as any).allNotes || "";
+}
+function safeRepairType(c: Partial<Customer> & Record<string, any>) {
+  return (c as any).repairType || (c as any).rimsFinish || "-";
+}
+function safeRimDamaged(
+  c: Partial<Customer> & Record<string, any>
+): "ja" | "nein" | "-" {
+  const v = (c as any).rimDamaged ?? (c as any).rimsHasBent;
+  return v === "ja" || v === "nein" ? v : "-";
+}
+/* ---------------------------------------------------------------------- */
+
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: customer, isLoading, isError } = useCustomer(id);
+  const { data, isLoading, isError } = useCustomerV2(id);
   const router = useRouter();
+
   const [authChecked, setAuthChecked] = useState(false);
   const [isAllowed, setIsAllowed] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  const [printOptions, setPrintOptions] = useState({
+  const [printOptions] = useState({
     kontakt: true,
     service: true,
     beschreibung: true,
@@ -57,7 +86,7 @@ export default function CustomerDetailPage() {
   const printRef = useRef(null);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    (async () => {
       try {
         const authed = await isAuthenticated();
         setIsAllowed(authed);
@@ -66,8 +95,7 @@ export default function CustomerDetailPage() {
       } finally {
         setAuthChecked(true);
       }
-    };
-    checkAuth();
+    })();
   }, []);
 
   const getStatusBadge = (status: string) => {
@@ -102,14 +130,15 @@ export default function CustomerDetailPage() {
     );
   };
 
-  const getInitials = (name: string) => {
-    return name
+  const getInitials = (name: string) =>
+    name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
+
+  /* --------- Early returns (unverändert) --------- */
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -188,7 +217,7 @@ export default function CustomerDetailPage() {
                 <CardContent className="p-6">
                   <div className="h-6 w-32 bg-white/10 rounded animate-pulse mb-4"></div>
                   <div className="space-y-2">
-                    <div className="h-4 w-full bg-white/10 rounded animate-pulse"></div>
+                    <div className="h-4 w/full bg-white/10 rounded animate-pulse"></div>
                     <div className="h-4 w-3/4 bg-white/10 rounded animate-pulse"></div>
                   </div>
                 </CardContent>
@@ -200,7 +229,7 @@ export default function CustomerDetailPage() {
     );
   }
 
-  if (isError || !customer) {
+  if (isError || !data?.customer) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center p-4">
         <Card className="bg-white/5 border-white/10 max-w-md w-full">
@@ -235,6 +264,45 @@ export default function CustomerDetailPage() {
     );
   }
 
+  /* ----------------- ab hier: Daten aus v2 verdrahten ----------------- */
+  const c = data.customer;
+  const servicesParsed = data.servicesParsed || [];
+  const primary = data.primaryService as any | undefined;
+
+  // Ableitungen mit Fallbacks
+  const displayName = safeName(c as any);
+  const createdDate = data.createdDate || safeCreatedAt(c as any);
+  const imageUrls = data.imageUrls || [];
+
+  const repairType =
+    primary?.dataObj?.rimsFinish ??
+    primary?.dataObj?.finish ??
+    safeRepairType(c as any);
+
+  const rimDamaged: "ja" | "nein" | "-" =
+    primary?.dataObj?.rimsHasBent ??
+    primary?.dataObj?.hasBent ??
+    safeRimDamaged(c as any);
+
+  const description =
+    primary?.dataObj?.notes ??
+    primary?.dataObj?.description ??
+    safeDescription(c as any);
+
+  // Für den Print-Dialog ein flaches Objekt formen (keine UI-Änderung)
+  const printCustomer = {
+    name: displayName,
+    email: c.email,
+    phone: c.phone,
+    status: c.status,
+    repairType,
+    rimDamaged,
+    damageDescription: description,
+    createdAt: c.$createdAt,
+    imageIds: imageUrls,
+    $id: c.$id,
+  } as any;
+
   return (
     <div className="min-h-screen bg-black p-4">
       <div className="max-w-6xl mx-auto">
@@ -250,7 +318,7 @@ export default function CustomerDetailPage() {
           </Button>
 
           <div className="flex items-center gap-3">
-            <CustomerPrintDialog customer={customer} />
+            <CustomerPrintDialog customer={printCustomer} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -280,42 +348,21 @@ export default function CustomerDetailPage() {
             <div className="flex flex-col md:flex-row md:items-center gap-6 mb-6">
               <Avatar className="w-16 h-16 bg-red-500/20 border-2 border-red-500/30">
                 <AvatarFallback className="text-red-500 font-bold text-lg">
-                  {getInitials(customer.name)}
+                  {getInitials(displayName)}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 mb-2">
                   <h1 className="text-2xl font-bold text-white">
-                    {customer.name}
+                    {displayName}
                   </h1>
-                  {getStatusBadge(customer.status)}
+                  {getStatusBadge(c.status || "eingegangen")}
                 </div>
-                <p className="text-gray-400">
-                  Kunde seit{" "}
-                  {new Date(
-                    customer.createdAt || Date.now()
-                  ).toLocaleDateString("de-DE")}
-                </p>
+                <p className="text-gray-400">Kunde seit {createdDate}</p>
               </div>
 
-              <div className="flex gap-2">
-                {/* <Button
-                  size="sm"
-                  className="bg-green-500 hover:bg-green-600 text-white"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  WhatsApp
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-                >
-                  <Phone className="h-4 w-4 mr-2" />
-                  Anrufen
-                </Button> */}
-              </div>
+              <div className="flex gap-2">{/* Buttons optional */}</div>
             </div>
 
             {/* Quick Stats */}
@@ -325,7 +372,7 @@ export default function CustomerDetailPage() {
                   <Mail className="h-5 w-5 text-blue-400" />
                   <div>
                     <p className="text-xs text-gray-400">E-Mail</p>
-                    <p className="text-white font-medium">{customer.email}</p>
+                    <p className="text-white font-medium">{c.email || "-"}</p>
                   </div>
                 </div>
               </div>
@@ -335,7 +382,7 @@ export default function CustomerDetailPage() {
                   <Phone className="h-5 w-5 text-green-400" />
                   <div>
                     <p className="text-xs text-gray-400">Telefon</p>
-                    <p className="text-white font-medium">{customer.phone}</p>
+                    <p className="text-white font-medium">{c.phone || "-"}</p>
                   </div>
                 </div>
               </div>
@@ -345,11 +392,7 @@ export default function CustomerDetailPage() {
                   <Calendar className="h-5 w-5 text-purple-400" />
                   <div>
                     <p className="text-xs text-gray-400">Erstellt</p>
-                    <p className="text-white font-medium">
-                      {new Date(
-                        customer.createdAt || Date.now()
-                      ).toLocaleDateString("de-DE")}
-                    </p>
+                    <p className="text-white font-medium">{createdDate}</p>
                   </div>
                 </div>
               </div>
@@ -370,7 +413,7 @@ export default function CustomerDetailPage() {
             <CardContent className="space-y-4">
               <div>
                 <p className="text-xs text-gray-400 mb-1">Reparatur Art</p>
-                <p className="text-white font-medium">{customer.repairType}</p>
+                <p className="text-white font-medium">{repairType}</p>
               </div>
 
               <Separator className="bg-white/10" />
@@ -379,12 +422,18 @@ export default function CustomerDetailPage() {
                 <p className="text-xs text-gray-400 mb-1">Felge beschädigt</p>
                 <Badge
                   className={
-                    customer.rimDamaged === "ja"
+                    rimDamaged === "ja"
                       ? "bg-red-500/20 text-red-500"
-                      : "bg-green-500/20 text-green-500"
+                      : rimDamaged === "nein"
+                      ? "bg-green-500/20 text-green-500"
+                      : "bg-white/10 text-gray-300"
                   }
                 >
-                  {customer.rimDamaged === "ja" ? "Ja" : "Nein"}
+                  {rimDamaged === "-"
+                    ? "-"
+                    : rimDamaged === "ja"
+                    ? "Ja"
+                    : "Nein"}
                 </Badge>
               </div>
 
@@ -392,7 +441,7 @@ export default function CustomerDetailPage() {
 
               <div>
                 <p className="text-xs text-gray-400 mb-1">Status</p>
-                {getStatusBadge(customer.status)}
+                {getStatusBadge(c.status)}
               </div>
             </CardContent>
           </Card>
@@ -408,7 +457,7 @@ export default function CustomerDetailPage() {
             <CardContent>
               <div className="bg-white/5 rounded-lg p-4 border border-white/10">
                 <p className="text-gray-300 leading-relaxed">
-                  {customer.damageDescription || customer.damageDescription}
+                  {description || "Keine Beschreibung vorhanden"}
                 </p>
               </div>
             </CardContent>
@@ -416,19 +465,19 @@ export default function CustomerDetailPage() {
         </div>
 
         {/* Images Section */}
-        {customer.imageIds?.length > 0 && (
+        {imageUrls.length > 0 && (
           <Card className="bg-white/5 border-white/10 mt-6">
             <CardHeader>
               <CardTitle className="text-white flex items-center gap-2">
                 <Eye className="h-5 w-5 text-red-500" />
-                Hochgeladene Bilder ({customer.imageIds.length})
+                Hochgeladene Bilder ({imageUrls.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {customer.imageIds.map((img, i) => (
+                {imageUrls.map((img, i) => (
                   <div
-                    key={i}
+                    key={img + i}
                     className="group relative aspect-square rounded-lg overflow-hidden border border-white/10 cursor-pointer hover:border-red-500/50 transition-all duration-300"
                     onClick={() => setSelectedImage(img)}
                   >
