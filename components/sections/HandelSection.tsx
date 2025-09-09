@@ -176,7 +176,7 @@ export default function HandelSection() {
           <div className="relative">
             <div className="aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/10">
               <img
-                src="https://images.pexels.com/photos/3806288/pexels-photo-3806288.jpeg"
+                src="/trade/trade-picture.png"
                 alt="Felgen und Reifen Handel"
                 className="w-full h-full object-cover"
               />

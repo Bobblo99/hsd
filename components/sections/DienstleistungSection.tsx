@@ -198,7 +198,7 @@ export default function DienstleistungSection() {
             <div className="relative group">
               <div className="aspect-square rounded-xl overflow-hidden">
                 <img
-                  src="https://images.pexels.com/photos/3806288/pexels-photo-3806288.jpeg"
+                  src="/felgen/rim-damaged1.png"
                   alt="Felge vorher"
                   className="w-full h-full object-cover"
                 />
@@ -214,7 +214,7 @@ export default function DienstleistungSection() {
             <div className="relative group">
               <div className="aspect-square rounded-xl overflow-hidden">
                 <img
-                  src="https://images.pexels.com/photos/3806288/pexels-photo-3806288.jpeg"
+                  src="/felgen/rim-repaired1.png"
                   alt="Felge nachher"
                   className="w-full h-full object-cover"
                 />

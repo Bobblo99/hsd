@@ -4,63 +4,73 @@ import { useState } from "react";
 import { CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  CustomerFormData,
-  ServiceType,
-  createCustomerFromForm,
-  validateFormData,
-} from "@/types/customer-form";
+
 import { ContactDataStep } from "@/components/customerForm/ContactDataStep";
 import { FelgenStep } from "@/components/customerForm/FelgenStep";
 import { ProgressBar } from "@/components/customerForm/ProgressBar";
 import { ReifenKaufenStep } from "@/components/customerForm/ReifenKaufenStep";
 import { ReifenServiceStep } from "@/components/customerForm/ReifenServiceStep";
-import { ServiceSelectionStep } from "@/components/customerForm/ServiceSelectionStep";
+import {
+  ServiceSelectionStep,
+  ServiceType,
+} from "@/components/customerForm/ServiceSelectionStep";
+import { createCustomerFromForm } from "@/lib/mappers/createCustomerFromForm";
+import { validateFormData } from "@/lib/validation/validateCustomerForm";
+import { CustomerFormData } from "@/types/customer-form";
+import { PhotoUploadStep } from "@/components/customerForm/PhotoUploadStep";
 
 export default function KundePage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<Partial<CustomerFormData>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get total steps based on selected services
   const getTotalSteps = () => {
-    let steps = 2; // Contact + Service Selection
-    if (formData.selectedServices?.includes("felgen")) steps++;
-    if (formData.selectedServices?.includes("reifen-kaufen")) steps++;
-    if (formData.selectedServices?.includes("reifenservice")) steps++;
+    let steps = 3; // Contact + Service Selection + Photos
+    if (formData.selectedServices?.includes("rims")) steps++;
+    if (formData.selectedServices?.includes("tires-purchase")) steps++;
+    if (formData.selectedServices?.includes("tire-service")) steps++;
     return steps;
   };
 
   // Get current service for step 3+
   const getCurrentService = (): ServiceType | undefined => {
     if (currentStep === 3) {
-      if (formData.selectedServices?.includes("felgen")) return "felgen";
-      if (formData.selectedServices?.includes("reifen-kaufen"))
-        return "reifen-kaufen";
-      if (formData.selectedServices?.includes("reifenservice"))
-        return "reifenservice";
+      if (formData.selectedServices?.includes("rims")) return "rims";
+      if (formData.selectedServices?.includes("tires-purchase"))
+        return "tires-purchase";
+      if (formData.selectedServices?.includes("tire-service"))
+        return "tire-service";
+      return undefined; // Photo step
     }
     if (currentStep === 4) {
       const services = formData.selectedServices || [];
-      if (services.includes("felgen") && services.includes("reifen-kaufen"))
-        return "reifen-kaufen";
-      if (services.includes("felgen") && services.includes("reifenservice"))
-        return "reifenservice";
+      if (services.includes("rims") && services.includes("tires-purchase"))
+        return "tires-purchase";
+      if (services.includes("rims") && services.includes("tire-service"))
+        return "tire-service";
       if (
-        services.includes("reifen-kaufen") &&
-        services.includes("reifenservice")
+        services.includes("tires-purchase") &&
+        services.includes("tire-service")
       )
-        return "reifenservice";
+        return "tire-service";
+      return undefined; // Photo step
     }
     if (currentStep === 5) {
       const services = formData.selectedServices || [];
       if (
-        services.includes("felgen") &&
-        services.includes("reifen-kaufen") &&
-        services.includes("reifenservice")
+        services.includes("rims") &&
+        services.includes("tires-purchase") &&
+        services.includes("tire-service")
       ) {
-        return "reifenservice";
+        return "tire-service";
       }
+      return undefined; // Photo step
+    }
+    if (currentStep === 6) {
+      return undefined; // Photo step
     }
     return undefined;
   };
@@ -80,9 +90,9 @@ export default function KundePage() {
     // Save current service data
     setFormData((prev) => ({
       ...prev,
-      [currentService === "felgen"
+      [currentService === "rims"
         ? "felgen"
-        : currentService === "reifen-kaufen"
+        : currentService === "tires-purchase"
         ? "reifenKaufen"
         : "reifenService"]: serviceData,
     }));
@@ -106,10 +116,12 @@ export default function KundePage() {
   };
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
       // Complete form data with current step data
       const completeFormData = {
         ...formData,
+        photos: photos,
         status: "eingegangen" as const,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -133,6 +145,8 @@ export default function KundePage() {
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,12 +159,12 @@ export default function KundePage() {
 
     // Show completed services based on current step
     const completed: string[] = [];
-    if (currentStep > 3 && formData.selectedServices?.includes("felgen")) {
+    if (currentStep > 3 && formData.selectedServices?.includes("rims")) {
       completed.push(serviceNames["felgen"]);
     }
     if (
       currentStep > 4 &&
-      formData.selectedServices?.includes("reifen-kaufen")
+      formData.selectedServices?.includes("tires-purchase")
     ) {
       completed.push(serviceNames["reifen-kaufen"]);
     }
@@ -229,30 +243,40 @@ export default function KundePage() {
           />
         )}
 
-        {currentStep >= 3 && getCurrentService() === "felgen" && (
+        {currentStep >= 3 && getCurrentService() === "rims" && (
           <FelgenStep
-            data={formData.felgen || {}}
+            data={formData.rims || {}}
             onNext={isLastStep() ? handleSubmit : handleServiceNext}
             onBack={handleBack}
             isLastStep={isLastStep()}
           />
         )}
 
-        {currentStep >= 3 && getCurrentService() === "reifen-kaufen" && (
+        {currentStep >= 3 && getCurrentService() === "tires-purchase" && (
           <ReifenKaufenStep
-            data={formData.reifenKaufen || {}}
+            data={formData.tiresPurchase || {}}
             onNext={isLastStep() ? handleSubmit : handleServiceNext}
             onBack={handleBack}
             isLastStep={isLastStep()}
           />
         )}
 
-        {currentStep >= 3 && getCurrentService() === "reifenservice" && (
+        {currentStep >= 3 && getCurrentService() === "tire-service" && (
           <ReifenServiceStep
-            data={formData.reifenService || {}}
+            data={formData.tireService || {}}
             onNext={isLastStep() ? handleSubmit : handleServiceNext}
             onBack={handleBack}
             isLastStep={isLastStep()}
+          />
+        )}
+
+        {currentStep >= 3 && !getCurrentService() && (
+          <PhotoUploadStep
+            photos={photos}
+            onPhotosChange={setPhotos}
+            onSubmit={handleSubmit}
+            onBack={handleBack}
+            isSubmitting={isSubmitting}
           />
         )}
       </div>

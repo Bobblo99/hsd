@@ -1,10 +1,8 @@
-// @ts-nocheck  // optional, wenn du den Typchecker hier nicht willst
-
+// @ts-nocheck
 const { sdk, databases, dbId, collectionId } = require("./index");
 
 async function setupCustomerCollection() {
   try {
-    // 1. Collection prüfen oder anlegen
     let collection;
     try {
       collection = await databases.getCollection(dbId, collectionId);

@@ -24,7 +24,8 @@ export function ProgressBar({
     { id: 2, title: "Service", icon: Settings },
     { id: 3, title: "Details", icon: ShoppingCart },
     { id: 4, title: "Weitere", icon: Wrench },
-    { id: 5, title: "Fertig", icon: CheckCircle },
+    { id: 5, title: "Weitere", icon: Wrench },
+    { id: 6, title: "Fotos", icon: CheckCircle },
   ];
 
   return (

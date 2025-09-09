@@ -37,6 +37,7 @@ export function ContactDataStep({ data, onNext }: ContactDataStepProps) {
   const form = useForm<ContactData>({
     resolver: zodResolver(contactSchema),
     defaultValues: data,
+    mode: "onChange",
   });
 
   const onSubmit = (formData: ContactData) => {

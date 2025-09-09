@@ -13,7 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 
-export type ServiceType = "felgen" | "reifen-kaufen" | "reifenservice";
+export type ServiceType = "rims" | "tires-purchase" | "tire-service";
 
 interface ServiceSelectionStepProps {
   selectedServices: ServiceType[];
@@ -30,7 +30,7 @@ export function ServiceSelectionStep({
 
   const serviceOptions = [
     {
-      id: "felgen" as ServiceType,
+      id: "rims" as ServiceType,
       title: "Felgen aufbereiten",
       description: "Lackierung, Pulverbeschichtung, Reparatur und Aufbereitung",
       icon: <Settings className="h-8 w-8" />,
@@ -38,7 +38,7 @@ export function ServiceSelectionStep({
       iconColor: "text-blue-500",
     },
     {
-      id: "reifen-kaufen" as ServiceType,
+      id: "tires-purchase" as ServiceType,
       title: "Reifen kaufen",
       description: "Neue Reifen in verschiedenen Größen und Qualitäten",
       icon: <ShoppingCart className="h-8 w-8" />,
@@ -46,7 +46,7 @@ export function ServiceSelectionStep({
       iconColor: "text-green-500",
     },
     {
-      id: "reifenservice" as ServiceType,
+      id: "tire-service" as ServiceType,
       title: "Reifenservice",
       description: "Montage, Wuchten und weitere Serviceleistungen",
       icon: <Wrench className="h-8 w-8" />,

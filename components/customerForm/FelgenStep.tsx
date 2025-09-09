@@ -1,11 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,43 +15,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Settings, ArrowRight, ArrowLeft, Plus } from "lucide-react";
-import { ServiceType } from "./ServiceSelectionStep";
+import { Settings, ArrowRight, ArrowLeft } from "lucide-react";
 
-const felgenSchema = z
+/** ----- Zod-Schema (englische Keys, deutsche Values) ----- */
+const rimsSchema = z
   .object({
-    anzahl: z.string().min(1, "Anzahl ist erforderlich"),
-    hatSchlag: z.enum(["ja", "nein"], { required_error: "Bitte auswählen" }),
-    beschaedigteAnzahl: z.string().optional(),
-    aufbereitungsart: z.enum(
+    count: z.string().min(1, "Anzahl ist erforderlich"),
+    hasBent: z.enum(["ja", "nein"], { required_error: "Bitte auswählen" }),
+    damagedCount: z.string().optional(),
+    finish: z.enum(
       ["einfarbig", "zweifarbig", "chrom", "smart-repair", "glanzdrehen"],
       { required_error: "Bitte auswählen" }
     ),
-    farbe: z.string().optional(),
-    kombination: z.string().optional(),
-    aufkleber: z.enum(
+    color: z.string().optional(),
+    combination: z.string().optional(),
+    sticker: z.enum(
       ["audi-sport", "rs-audi", "m-bmw", "kein-aufkleber", "sonstiges"],
       { required_error: "Bitte auswählen" }
     ),
-    aufkleberFarbe: z.string().optional(),
-    anmerkungen: z.string().optional(),
-    weitereServices: z.array(z.string()).optional(),
+    stickerColor: z.string().optional(),
+    notes: z.string().optional(),
+    extraServices: z.array(z.string()).optional(), // falls du Zusatzservices brauchst
   })
   .refine(
     (data) => {
-      // Conditional validation
-      if (data.hatSchlag === "ja" && !data.beschaedigteAnzahl) {
-        return false;
-      }
-      if (data.aufbereitungsart === "einfarbig" && !data.farbe) {
-        return false;
-      }
-      if (data.aufbereitungsart === "zweifarbig" && !data.kombination) {
-        return false;
-      }
-      if (data.aufkleber === "audi-sport" && !data.aufkleberFarbe) {
-        return false;
-      }
+      if (data.hasBent === "ja" && !data.damagedCount) return false;
+      if (data.finish === "einfarbig" && !data.color) return false;
+      if (data.finish === "zweifarbig" && !data.combination) return false;
+      if (data.sticker === "audi-sport" && !data.stickerColor) return false;
       return true;
     },
     {
@@ -62,11 +51,11 @@ const felgenSchema = z
     }
   );
 
-type FelgenData = z.infer<typeof felgenSchema>;
+export type RimsData = z.infer<typeof rimsSchema>;
 
 interface FelgenStepProps {
-  data: Partial<FelgenData>;
-  onNext: (data: FelgenData) => void;
+  data: Partial<RimsData>;
+  onNext: (data: RimsData) => void;
   onBack: () => void;
   isLastStep?: boolean;
 }
@@ -77,23 +66,16 @@ export function FelgenStep({
   onBack,
   isLastStep = false,
 }: FelgenStepProps) {
-  const form = useForm<FelgenData>({
-    resolver: zodResolver(felgenSchema),
+  const form = useForm<RimsData>({
+    resolver: zodResolver(rimsSchema),
     defaultValues: data,
   });
 
-  const watchHatSchlag = form.watch("hatSchlag");
-  const watchAufbereitungsart = form.watch("aufbereitungsart");
-  const watchAufkleber = form.watch("aufkleber");
+  const watchHasBent = form.watch("hasBent");
+  const watchFinish = form.watch("finish");
+  const watchSticker = form.watch("sticker");
 
-  const onSubmit = (formData: FelgenData) => {
-    if (isLastStep) {
-      // Save data and trigger submission
-      onNext(formData);
-    } else {
-      onNext(formData);
-    }
-  };
+  const onSubmit = (formData: RimsData) => onNext(formData);
 
   const anzahlOptions = ["1", "2", "3", "4", "Sonstiges"];
   const farbenOptions = [
@@ -110,33 +92,18 @@ export function FelgenStep({
     "Glanzgedrehte Front + Anthrazit",
     "Sonstiges",
   ];
-  const aufkleberFarbenOptions = ["Schwarz", "Grau", "Rot"];
+  const stickerFarbenOptions = ["Schwarz", "Grau", "Rot"];
 
-  // Validation check
   const isFormValid = () => {
-    const values = form.getValues();
-    if (
-      !values.anzahl ||
-      !values.hatSchlag ||
-      !values.aufbereitungsart ||
-      !values.aufkleber
-    ) {
-      return false;
-    }
-    if (values.hatSchlag === "ja" && !values.beschaedigteAnzahl) {
-      return false;
-    }
-    if (values.aufbereitungsart === "einfarbig" && !values.farbe) {
-      return false;
-    }
-    if (values.aufbereitungsart === "zweifarbig" && !values.kombination) {
-      return false;
-    }
-    if (values.aufkleber === "audi-sport" && !values.aufkleberFarbe) {
-      return false;
-    }
+    const v = form.getValues();
+    if (!v.count || !v.hasBent || !v.finish || !v.sticker) return false;
+    if (v.hasBent === "ja" && !v.damagedCount) return false;
+    if (v.finish === "einfarbig" && !v.color) return false;
+    if (v.finish === "zweifarbig" && !v.combination) return false;
+    if (v.sticker === "audi-sport" && !v.stickerColor) return false;
     return true;
   };
+
   return (
     <Card className="bg-white/5 border-white/10">
       <CardHeader>
@@ -146,6 +113,7 @@ export function FelgenStep({
         </CardTitle>
         <p className="text-gray-400">Details zur Felgenaufbereitung</p>
       </CardHeader>
+
       <CardContent>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Anzahl Felgen */}
@@ -154,8 +122,10 @@ export function FelgenStep({
               Anzahl Felgen *
             </Label>
             <Select
-              value={form.watch("anzahl") || ""}
-              onValueChange={(value) => form.setValue("anzahl", value)}
+              value={form.watch("count") || ""}
+              onValueChange={(value) =>
+                form.setValue("count", value, { shouldValidate: true })
+              }
             >
               <SelectTrigger className="bg-white/5 border-white/20 text-white">
                 <SelectValue placeholder="Anzahl auswählen" />
@@ -172,9 +142,9 @@ export function FelgenStep({
                 ))}
               </SelectContent>
             </Select>
-            {form.formState.errors.anzahl && (
+            {form.formState.errors.count && (
               <p className="text-red-400 text-sm mt-2">
-                {form.formState.errors.anzahl.message}
+                {form.formState.errors.count.message}
               </p>
             )}
           </div>
@@ -185,9 +155,11 @@ export function FelgenStep({
               Hat die Felge einen Schlag? *
             </Label>
             <RadioGroup
-              value={form.watch("hatSchlag")}
+              value={form.watch("hasBent")}
               onValueChange={(value) =>
-                form.setValue("hatSchlag", value as "ja" | "nein")
+                form.setValue("hasBent", value as "ja" | "nein", {
+                  shouldValidate: true,
+                })
               }
             >
               <div className="grid grid-cols-2 gap-4">
@@ -219,15 +191,15 @@ export function FelgenStep({
                 </div>
               </div>
             </RadioGroup>
-            {form.formState.errors.hatSchlag && (
+            {form.formState.errors.hasBent && (
               <p className="text-red-400 text-sm mt-2">
-                {form.formState.errors.hatSchlag.message}
+                {form.formState.errors.hasBent.message}
               </p>
             )}
           </div>
 
           {/* Beschädigte Anzahl (nur wenn Schlag = Ja) */}
-          {watchHatSchlag === "ja" && (
+          {watchHasBent === "ja" && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4">
               <h4 className="text-yellow-400 font-medium mb-4 flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -238,9 +210,11 @@ export function FelgenStep({
                   Wie viele Felgen sind beschädigt?
                 </Label>
                 <Select
-                  value={form.watch("beschaedigteAnzahl")}
+                  value={form.watch("damagedCount") || ""}
                   onValueChange={(value) =>
-                    form.setValue("beschaedigteAnzahl", value)
+                    form.setValue("damagedCount", value, {
+                      shouldValidate: true,
+                    })
                   }
                 >
                   <SelectTrigger className="bg-white/5 border-white/20 text-white">
@@ -258,15 +232,14 @@ export function FelgenStep({
                     ))}
                   </SelectContent>
                 </Select>
-                {watchHatSchlag === "ja" &&
-                  !form.watch("beschaedigteAnzahl") && (
-                    <p className="text-red-400 text-sm mt-2">
-                      Anzahl beschädigter Felgen ist erforderlich
-                    </p>
-                  )}
-                {form.formState.errors.beschaedigteAnzahl && (
+                {watchHasBent === "ja" && !form.watch("damagedCount") && (
                   <p className="text-red-400 text-sm mt-2">
-                    {form.formState.errors.beschaedigteAnzahl.message}
+                    Anzahl beschädigter Felgen ist erforderlich
+                  </p>
+                )}
+                {form.formState.errors.damagedCount && (
+                  <p className="text-red-400 text-sm mt-2">
+                    {form.formState.errors.damagedCount.message}
                   </p>
                 )}
               </div>
@@ -279,9 +252,9 @@ export function FelgenStep({
               Wie soll die Felge aufbereitet werden? *
             </Label>
             <RadioGroup
-              value={form.watch("aufbereitungsart")}
+              value={form.watch("finish")}
               onValueChange={(value) =>
-                form.setValue("aufbereitungsart", value as any)
+                form.setValue("finish", value as any, { shouldValidate: true })
               }
             >
               <div className="space-y-3">
@@ -291,34 +264,34 @@ export function FelgenStep({
                   { value: "chrom", label: "Chrom" },
                   { value: "smart-repair", label: "Smart Repair" },
                   { value: "glanzdrehen", label: "Glanzdrehen" },
-                ].map((option) => (
-                  <div key={option.value}>
+                ].map((opt) => (
+                  <div key={opt.value}>
                     <RadioGroupItem
-                      value={option.value}
-                      id={`art-${option.value}`}
+                      value={opt.value}
+                      id={`finish-${opt.value}`}
                       className="peer sr-only"
                     />
                     <Label
-                      htmlFor={`art-${option.value}`}
+                      htmlFor={`finish-${opt.value}`}
                       className={`flex items-center p-4 rounded-lg border-2 cursor-pointer hover:bg-white/5 transition-all ${
-                        form.watch("aufbereitungsart") === option.value
+                        form.watch("finish") === opt.value
                           ? "border-red-500 bg-red-500/20"
                           : "border-white/20"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className="text-white font-medium">
-                          {option.label}
+                          {opt.label}
                         </span>
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            form.watch("aufbereitungsart") === option.value
+                            form.watch("finish") === opt.value
                               ? "border-red-500 bg-red-500"
                               : "border-white/30"
                           }`}
                         >
-                          {form.watch("aufbereitungsart") === option.value && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          {form.watch("finish") === opt.value && (
+                            <div className="w-2 h-2 bg-white rounded-full" />
                           )}
                         </div>
                       </div>
@@ -327,31 +300,31 @@ export function FelgenStep({
                 ))}
               </div>
             </RadioGroup>
-            {form.formState.errors.aufbereitungsart && (
+            {form.formState.errors.finish && (
               <p className="text-red-400 text-sm mt-2">
-                {form.formState.errors.aufbereitungsart.message}
+                {form.formState.errors.finish.message}
               </p>
             )}
           </div>
 
-          {/* Farbe (nur bei einfarbig) */}
-          {/* Conditional Fields - Übersichtlicher */}
-          {(watchAufbereitungsart === "einfarbig" ||
-            watchAufbereitungsart === "zweifarbig") && (
+          {/* Farbe / Kombination (conditional) */}
+          {(watchFinish === "einfarbig" || watchFinish === "zweifarbig") && (
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
               <h4 className="text-blue-400 font-medium mb-4 flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                {watchAufbereitungsart === "einfarbig"
+                {watchFinish === "einfarbig"
                   ? "Farbe auswählen"
                   : "Kombination auswählen"}
               </h4>
 
-              {watchAufbereitungsart === "einfarbig" && (
+              {watchFinish === "einfarbig" && (
                 <div>
                   <Label className="text-gray-300">Farbe auswählen *</Label>
                   <Select
-                    value={form.watch("farbe")}
-                    onValueChange={(value) => form.setValue("farbe", value)}
+                    value={form.watch("color") || ""}
+                    onValueChange={(value) =>
+                      form.setValue("color", value, { shouldValidate: true })
+                    }
                   >
                     <SelectTrigger className="bg-white/5 border-white/20 text-white">
                       <SelectValue placeholder="Farbe auswählen" />
@@ -368,29 +341,30 @@ export function FelgenStep({
                       ))}
                     </SelectContent>
                   </Select>
-                  {watchAufbereitungsart === "einfarbig" &&
-                    !form.watch("farbe") && (
-                      <p className="text-red-400 text-sm mt-2">
-                        Farbe ist erforderlich
-                      </p>
-                    )}
-                  {form.formState.errors.farbe && (
+                  {watchFinish === "einfarbig" && !form.watch("color") && (
                     <p className="text-red-400 text-sm mt-2">
-                      {form.formState.errors.farbe.message}
+                      Farbe ist erforderlich
+                    </p>
+                  )}
+                  {form.formState.errors.color && (
+                    <p className="text-red-400 text-sm mt-2">
+                      {form.formState.errors.color.message}
                     </p>
                   )}
                 </div>
               )}
 
-              {watchAufbereitungsart === "zweifarbig" && (
+              {watchFinish === "zweifarbig" && (
                 <div>
                   <Label className="text-gray-300">
                     Kombination auswählen *
                   </Label>
                   <Select
-                    value={form.watch("kombination")}
+                    value={form.watch("combination") || ""}
                     onValueChange={(value) =>
-                      form.setValue("kombination", value)
+                      form.setValue("combination", value, {
+                        shouldValidate: true,
+                      })
                     }
                   >
                     <SelectTrigger className="bg-white/5 border-white/20 text-white">
@@ -408,15 +382,15 @@ export function FelgenStep({
                       ))}
                     </SelectContent>
                   </Select>
-                  {watchAufbereitungsart === "zweifarbig" &&
-                    !form.watch("kombination") && (
+                  {watchFinish === "zweifarbig" &&
+                    !form.watch("combination") && (
                       <p className="text-red-400 text-sm mt-2">
                         Kombination ist erforderlich
                       </p>
                     )}
-                  {form.formState.errors.kombination && (
+                  {form.formState.errors.combination && (
                     <p className="text-red-400 text-sm mt-2">
-                      {form.formState.errors.kombination.message}
+                      {form.formState.errors.combination.message}
                     </p>
                   )}
                 </div>
@@ -430,9 +404,9 @@ export function FelgenStep({
               Aufkleber *
             </Label>
             <RadioGroup
-              value={form.watch("aufkleber")}
+              value={form.watch("sticker")}
               onValueChange={(value) =>
-                form.setValue("aufkleber", value as any)
+                form.setValue("sticker", value as any, { shouldValidate: true })
               }
             >
               <div className="space-y-3">
@@ -442,34 +416,34 @@ export function FelgenStep({
                   { value: "m-bmw", label: "M (BMW)" },
                   { value: "kein-aufkleber", label: "Kein Aufkleber" },
                   { value: "sonstiges", label: "Sonstiges" },
-                ].map((option) => (
-                  <div key={option.value}>
+                ].map((opt) => (
+                  <div key={opt.value}>
                     <RadioGroupItem
-                      value={option.value}
-                      id={`aufkleber-${option.value}`}
+                      value={opt.value}
+                      id={`sticker-${opt.value}`}
                       className="peer sr-only"
                     />
                     <Label
-                      htmlFor={`aufkleber-${option.value}`}
+                      htmlFor={`sticker-${opt.value}`}
                       className={`flex items-center p-4 rounded-lg border-2 cursor-pointer hover:bg-white/5 transition-all ${
-                        form.watch("aufkleber") === option.value
+                        form.watch("sticker") === opt.value
                           ? "border-red-500 bg-red-500/20"
                           : "border-white/20"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className="text-white font-medium">
-                          {option.label}
+                          {opt.label}
                         </span>
                         <div
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                            form.watch("aufkleber") === option.value
+                            form.watch("sticker") === opt.value
                               ? "border-red-500 bg-red-500"
                               : "border-white/30"
                           }`}
                         >
-                          {form.watch("aufkleber") === option.value && (
-                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                          {form.watch("sticker") === opt.value && (
+                            <div className="w-2 h-2 bg-white rounded-full" />
                           )}
                         </div>
                       </div>
@@ -478,15 +452,15 @@ export function FelgenStep({
                 ))}
               </div>
             </RadioGroup>
-            {form.formState.errors.aufkleber && (
+            {form.formState.errors.sticker && (
               <p className="text-red-400 text-sm mt-2">
-                {form.formState.errors.aufkleber.message}
+                {form.formState.errors.sticker.message}
               </p>
             )}
           </div>
 
-          {/* Aufkleber Farbe (nur bei Audi Sport) */}
-          {watchAufkleber === "audi-sport" && (
+          {/* Aufkleber-Farbe (nur Audi Sport) */}
+          {watchSticker === "audi-sport" && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
               <h4 className="text-red-400 font-medium mb-4 flex items-center gap-2">
                 <Settings className="h-4 w-4" />
@@ -495,16 +469,18 @@ export function FelgenStep({
               <div>
                 <Label className="text-gray-300">Aufkleber Farbe *</Label>
                 <Select
-                  value={form.watch("aufkleberFarbe")}
+                  value={form.watch("stickerColor") || ""}
                   onValueChange={(value) =>
-                    form.setValue("aufkleberFarbe", value)
+                    form.setValue("stickerColor", value, {
+                      shouldValidate: true,
+                    })
                   }
                 >
                   <SelectTrigger className="bg-white/5 border-white/20 text-white">
                     <SelectValue placeholder="Farbe auswählen" />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-700">
-                    {aufkleberFarbenOptions.map((farbe) => (
+                    {stickerFarbenOptions.map((farbe) => (
                       <SelectItem
                         key={farbe}
                         value={farbe}
@@ -515,15 +491,15 @@ export function FelgenStep({
                     ))}
                   </SelectContent>
                 </Select>
-                {watchAufkleber === "audi-sport" &&
-                  !form.watch("aufkleberFarbe") && (
+                {watchSticker === "audi-sport" &&
+                  !form.watch("stickerColor") && (
                     <p className="text-red-400 text-sm mt-2">
                       Aufkleber Farbe ist erforderlich
                     </p>
                   )}
-                {form.formState.errors.aufkleberFarbe && (
+                {form.formState.errors.stickerColor && (
                   <p className="text-red-400 text-sm mt-2">
-                    {form.formState.errors.aufkleberFarbe.message}
+                    {form.formState.errors.stickerColor.message}
                   </p>
                 )}
               </div>
@@ -534,14 +510,14 @@ export function FelgenStep({
           <div>
             <Label className="text-gray-300">Anmerkungen</Label>
             <Textarea
-              {...form.register("anmerkungen")}
+              {...form.register("notes")}
               placeholder="Zusätzliche Wünsche oder Anmerkungen..."
               className="bg-white/5 border-white/20 text-white placeholder-gray-400 focus:border-red-500 resize-none"
               rows={3}
             />
           </div>
 
-          {/* Validation Warning */}
+          {/* Hinweis */}
           {!isFormValid() && (
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
               <p className="text-red-400 text-sm">
@@ -550,6 +526,8 @@ export function FelgenStep({
               </p>
             </div>
           )}
+
+          {/* Navigation */}
           <div className="flex gap-4">
             <Button
               type="button"
