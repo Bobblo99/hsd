@@ -1,12 +1,30 @@
-import { Customer, CustomerFile, CustomerService } from "@/types/customers";
+// hooks/v2/useCustomerV2.ts
 import { useQuery } from "@tanstack/react-query";
+import type {
+  Customer,
+  CustomerFile,
+  CustomerService,
+} from "@/types/customers";
 
+/** Generischer Appwrite-Listen-Response */
 type ListResponse<T> = {
   total: number;
   documents: T[];
 };
 
-// kleine Helfer
+/** Bild-Ressource fürs UI (alle URLs verfügbar) */
+export type ImageResource = {
+  id: string;
+  previewUrl: string;
+  viewUrl: string;
+  downloadUrl: string;
+  purpose?: CustomerFile["purpose"];
+  order?: number;
+  notes?: string;
+};
+
+/* --------------------------------- Helpers -------------------------------- */
+
 function parseJSON<T = unknown>(s?: string): T | undefined {
   if (!s) return undefined;
   try {
@@ -16,23 +34,49 @@ function parseJSON<T = unknown>(s?: string): T | undefined {
   }
 }
 
-function extractImageUrls(customer: any, files: CustomerFile[]) {
-  // Wenn du eigene Preview-URLs generierst, häng sie hier an
-  const fromFiles = files?.map((f) => f.previewUrl).filter(Boolean) as string[];
-  const legacy = Array.isArray((customer as any).imageIds)
+/** Baut eine vollständige Bildliste aus Files + (falls vorhanden) Legacy-URLs */
+function extractImages(customer: any, files: CustomerFile[]): ImageResource[] {
+  const fromFiles: ImageResource[] =
+    files?.map((f) => ({
+      id: f.$id,
+      // diese drei Felder werden von deiner /files-API-Route mitgeliefert
+      previewUrl: (f as any).previewUrl,
+      viewUrl: (f as any).viewUrl,
+      downloadUrl: (f as any).downloadUrl,
+      purpose: f.purpose,
+      order: f.order,
+      notes: f.notes,
+    })) ?? [];
+
+  // Legacy: alte string-URLs (falls noch vorhanden)
+  const legacyList: ImageResource[] = Array.isArray((customer as any).imageIds)
     ? (customer as any).imageIds
+        .filter(Boolean)
+        .map((url: string, i: number) => ({
+          id: `legacy-${i}`,
+          previewUrl: url,
+          viewUrl: url,
+          downloadUrl: url,
+        }))
     : [];
-  const images = [...legacy, ...fromFiles].filter(Boolean);
-  return images as string[];
+
+  // Nach "order" sortieren (nicht gesetzte ans Ende)
+  return [...fromFiles, ...legacyList].sort(
+    (a, b) =>
+      (a.order ?? Number.MAX_SAFE_INTEGER) -
+      (b.order ?? Number.MAX_SAFE_INTEGER)
+  );
 }
+
+/* ---------------------------------- Hook ---------------------------------- */
 
 export function useCustomerV2(customerId: string) {
   return useQuery<{
     customer: Customer;
     services: CustomerService[];
     files: CustomerFile[];
-    // nützliche Derivate:
-    imageUrls: string[];
+    images: ImageResource[]; // alle Bild-Infos (preview/view/download)
+    imageUrls: string[]; // nur Previews (praktisch für <img src=...>)
     createdDate: string;
     primaryService?: CustomerService;
     servicesParsed: Array<CustomerService & { dataObj?: any }>;
@@ -40,7 +84,7 @@ export function useCustomerV2(customerId: string) {
     queryKey: ["customerV2", customerId],
     enabled: !!customerId,
     queryFn: async () => {
-      // 1) alles parallel holen
+      // alles parallel holen
       const [cRes, sRes, fRes] = await Promise.all([
         fetch(`/api/v2/customers/${customerId}`, { cache: "no-store" }),
         fetch(`/api/v2/customers/${customerId}/services`, {
@@ -54,23 +98,43 @@ export function useCustomerV2(customerId: string) {
         throw new Error(`Failed to fetch services for ${customerId}`);
       if (!fRes.ok) throw new Error(`Failed to fetch files for ${customerId}`);
 
-      const customer = (await cRes.json()) as Customer;
-      const servicesList = (await sRes.json()) as ListResponse<CustomerService>;
-      const filesList = (await fRes.json()) as ListResponse<CustomerFile>;
+      // Der Customer-GET hatte bei dir zeitweise verschiedene Shapes ⇒ defensiv extrahieren
+      const raw = await cRes.json();
+      const customer: Customer = raw?.$id
+        ? raw
+        : raw?.customer?.$id
+        ? raw.customer
+        : raw?.customer?.customer?.$id
+        ? raw.customer.customer
+        : (() => {
+            throw new Error("Unexpected customer response shape");
+          })();
 
-      const services = servicesList?.documents ?? [];
-      const files = filesList?.documents ?? [];
+      // Services
+      const sJson = (await sRes.json()) as
+        | ListResponse<CustomerService>
+        | CustomerService[];
+      const services = Array.isArray((sJson as any)?.documents)
+        ? (sJson as ListResponse<CustomerService>).documents
+        : (sJson as CustomerService[]);
 
-      // 2) sinnvolle Ableitungen
-      const imageUrls = extractImageUrls(customer, files);
-      const createdDate = customer?.$createdAt
+      // Files (mit URLs aus der API-Route angereichert)
+      const fJson = (await fRes.json()) as
+        | ListResponse<CustomerFile>
+        | CustomerFile[];
+      const files = Array.isArray((fJson as any)?.documents)
+        ? (fJson as ListResponse<CustomerFile>).documents
+        : (fJson as CustomerFile[]);
+
+      // Bilder ableiten
+      const images = extractImages(customer, files);
+      const imageUrls = images.map((i) => i.previewUrl);
+
+      // weitere Derivate
+      const createdDate = customer.$createdAt
         ? new Date(customer.$createdAt).toLocaleDateString("de-DE")
         : "-";
-
-      // Beispiel: „primärer“ Service = erster Eintrag (falls du eine Regel brauchst, passe hier an)
       const primaryService = services[0];
-
-      // Services mit geparstem JSON
       const servicesParsed = services.map((s) => ({
         ...s,
         dataObj: parseJSON(s.data),
@@ -80,6 +144,7 @@ export function useCustomerV2(customerId: string) {
         customer,
         services,
         files,
+        images,
         imageUrls,
         createdDate,
         primaryService,

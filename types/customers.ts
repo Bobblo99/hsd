@@ -95,17 +95,6 @@ export interface CustomerService {
 
   serviceType: ServiceType;
 
-  /**
-   * Freies JSON (als string in Appwrite gespeichert) mit allen Details,
-   * z. B. für "rims":
-   * {
-   *   "rimsCount": "4",
-   *   "rimsHasBent": "ja",
-   *   "rimsFinish": "einfarbig",
-   *   "rimsColor": "schwarz-glanz",
-   *   "rimsSticker": "audi-sport"
-   * }
-   */
   data?: string;
 
   status?: ServiceStatus;

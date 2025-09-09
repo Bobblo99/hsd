@@ -13,7 +13,6 @@ client
   )
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || "");
 
-// ⚡ Admin-Client für Seeds oder Server-Skripte
 let adminDatabases: Databases | null = null;
 if (process.env.APPWRITE_API_KEY) {
   const adminClient = new Client()

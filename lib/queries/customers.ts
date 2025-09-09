@@ -52,3 +52,47 @@ export async function updateCustomerV2(
   }
   return res.json();
 }
+
+export type CreateCustomerInput = Pick<
+  Customer,
+  | "firstName"
+  | "lastName"
+  | "fullName"
+  | "street"
+  | "houseNumber"
+  | "zipCode"
+  | "city"
+  | "fullAddress"
+  | "email"
+  | "phone"
+  | "status"
+  | "imageCount"
+  | "hasImages"
+>;
+
+function buildCreatePayload(i: CreateCustomerInput) {
+  const fullName =
+    i.fullName?.trim() || [i.firstName, i.lastName].filter(Boolean).join(" ");
+  const fullAddress =
+    i.fullAddress?.trim() ||
+    `${i.street} ${i.houseNumber}, ${i.zipCode} ${i.city}`;
+  return { ...i, fullName, fullAddress };
+}
+
+export async function createCustomerV2(
+  input: CreateCustomerInput
+): Promise<Customer> {
+  const res = await fetch("/api/v2/customers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(buildCreatePayload(input)),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteCustomerV2(id: string): Promise<{ success: true }> {
+  const res = await fetch(`/api/v2/customers/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}

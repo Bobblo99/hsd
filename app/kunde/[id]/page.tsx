@@ -36,7 +36,6 @@ import {
 import type { Customer } from "@/types/customers";
 import { useCustomerV2 } from "@/hooks/v2/useCustomerV2";
 
-/* ----------------- helpers: nur Daten, kein UI-Change ----------------- */
 function safeName(c: Partial<Customer> & Record<string, any>) {
   return (
     c.fullName ||
@@ -69,7 +68,7 @@ function safeRimDamaged(
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { data, isLoading, isError } = useCustomerV2(id);
+  const { data, isLoading, isError, isSuccess } = useCustomerV2(id);
   const router = useRouter();
 
   const [authChecked, setAuthChecked] = useState(false);
@@ -125,7 +124,7 @@ export default function CustomerDetailPage() {
     return (
       <Badge className={`${variant.color} border flex items-center gap-1`}>
         <Icon className="h-3 w-3" />
-        {status.charAt(0).toUpperCase() + status.slice(1).replace("-", " ")}
+        {status}
       </Badge>
     );
   };
@@ -138,7 +137,6 @@ export default function CustomerDetailPage() {
       .toUpperCase()
       .slice(0, 2);
 
-  /* --------- Early returns (unverändert) --------- */
   if (!authChecked) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -264,12 +262,10 @@ export default function CustomerDetailPage() {
     );
   }
 
-  /* ----------------- ab hier: Daten aus v2 verdrahten ----------------- */
   const c = data.customer;
   const servicesParsed = data.servicesParsed || [];
   const primary = data.primaryService as any | undefined;
 
-  // Ableitungen mit Fallbacks
   const displayName = safeName(c as any);
   const createdDate = data.createdDate || safeCreatedAt(c as any);
   const imageUrls = data.imageUrls || [];
@@ -289,7 +285,6 @@ export default function CustomerDetailPage() {
     primary?.dataObj?.description ??
     safeDescription(c as any);
 
-  // Für den Print-Dialog ein flaches Objekt formen (keine UI-Änderung)
   const printCustomer = {
     name: displayName,
     email: c.email,
@@ -305,6 +300,7 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="min-h-screen bg-black p-4">
+      <img src="http://localhost:8080/v1/storage/buckets/customer-files/files/68c03b9167a8dc45a73e/view?project=68bc24d30005db4fb4b6&mode=admin" />
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -475,34 +471,33 @@ export default function CustomerDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {imageUrls.map((img, i) => (
-                  <div
-                    key={img + i}
-                    className="group relative aspect-square rounded-lg overflow-hidden border border-white/10 cursor-pointer hover:border-red-500/50 transition-all duration-300"
-                    onClick={() => setSelectedImage(img)}
-                  >
-                    <img
-                      src={img}
-                      alt={`Bild ${i + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <Eye className="h-6 w-6 text-white" />
+                {imageUrls.map((img, i) => {
+                  return (
+                    <div
+                      key={img + i}
+                      className="group relative aspect-square rounded-lg overflow-hidden border border-white/10 cursor-pointer hover:border-red-500/50 transition-all duration-300"
+                      onClick={() => setSelectedImage(img)}
+                    >
+                      <img
+                        src={img}
+                        alt={`Bild ${i + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <Eye className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                        Bild {i + 1}
+                      </div>
                     </div>
-                    <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                      Bild {i + 1}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Print Options (Hidden) */}
-        <div ref={printRef} className="hidden print:block">
-          {/* Print content here */}
-        </div>
+        <div ref={printRef} className="hidden print:block"></div>
 
         {/* Image Modal */}
         {selectedImage && (

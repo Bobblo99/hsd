@@ -103,7 +103,7 @@ export function PhotoUploadStep({
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept="image/png,image/jpeg,application/pdf"
             onChange={handleFileSelect}
             className="hidden"
             id="photo-upload"

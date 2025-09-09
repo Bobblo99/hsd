@@ -14,10 +14,10 @@ import {
   ServiceSelectionStep,
   ServiceType,
 } from "@/components/customerForm/ServiceSelectionStep";
-import { validateFormData } from "@/lib/validation/validateCustomerForm";
 import { CustomerFormData } from "@/types/customer-form";
 import { PhotoUploadStep } from "@/components/customerForm/PhotoUploadStep";
-import { createCustomerPayloadsFromForm } from "@/lib/mappers/createCustomerFromForm";
+import { useCreateCustomerWorkflowV2 } from "@/hooks/v2/useCreateCustomerWorkflowV2";
+import { toast } from "@/hooks/use-toast";
 
 export default function KundePage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -115,41 +115,50 @@ export default function KundePage() {
     }
   };
 
+  const { mutateAsync: createWorkflow, isPending } =
+    useCreateCustomerWorkflowV2();
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Complete form data with current step data
-      const completeFormData = {
-        ...formData,
-        photos: photos,
-        status: "eingegangen" as const,
+      const completeFormData: CustomerFormData = {
+        firstName: formData.firstName ?? "",
+        lastName: formData.lastName ?? "",
+        street: formData.street ?? "",
+        houseNumber: formData.houseNumber ?? "",
+        zipCode: formData.zipCode ?? "",
+        city: formData.city ?? "",
+        email: formData.email ?? "",
+        phone: formData.phone ?? "",
+        agbAccepted: formData.agbAccepted ?? false,
+        status: "eingegangen",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      } as CustomerFormData;
-
-      // Validate form data
-      const errors = validateFormData(completeFormData);
-      if (errors.length > 0) {
-        console.error("Validation errors:", errors);
-        return;
-      }
-
-      // Create customer object for database
-      const customerData = createCustomerPayloadsFromForm(completeFormData);
-
-      console.log("Submitting customer data:", customerData);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+        selectedServices: formData.selectedServices ?? [],
+        rims: formData.rims,
+        tiresPurchase: formData.tiresPurchase,
+        tireService: formData.tireService,
+        photos,
+      };
+      const { customer, services, uploadedFiles } = await createWorkflow(
+        completeFormData
+      );
+      toast({
+        title: "Kunde wurde erfolgreich angelegt",
+        variant: "success",
+      });
 
       setIsSubmitted(true);
     } catch (error) {
       console.error("Submission error:", error);
+      toast({
+        title: "Beim anlegen des Kunden ist etwas schief gegangen",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const getCompletedServices = (): string[] => {
     const serviceNames = {
       felgen: "Felgen aufbereiten",

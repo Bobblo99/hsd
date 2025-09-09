@@ -17,18 +17,29 @@ import {
   Clock,
   MoreHorizontal,
   Package,
+  Loader2,
+  Trash2,
 } from "lucide-react";
 import { Customer } from "@/types/customers";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@radix-ui/react-dropdown-menu";
+
 import { useToast } from "@/hooks/use-toast";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import Link from "next/link";
 import { useUpdateCustomerV2 } from "@/hooks/v2/useUpdateCustomerV2";
+import { useDeleteCustomerV2 } from "@/hooks/v2/useDeleteCustomerV2";
+import {
+  DialogHeader,
+  DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "../ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 
 interface CustomerListProps {
   customers: Customer[];
@@ -113,11 +124,97 @@ export function CustomerList({
               <TableCell>
                 <CustomerDetailButton customerId={c.$id ?? ""} />
               </TableCell>
+              <TableCell>
+                <DeleteCustomerButton customerId={c.$id} />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+type Props = {
+  customerId: string;
+  onDeleted?: () => void; // optional
+};
+
+export function DeleteCustomerButton({ customerId, onDeleted }: Props) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const { mutate: removeCustomer } = useDeleteCustomerV2();
+
+  const confirmDelete = () => {
+    removeCustomer(
+      { id: customerId },
+      {
+        onSuccess: () => {
+          setOpen(false);
+          toast({
+            variant: "success",
+            title: "Kunde gelöscht",
+            description: "Alle zugehörigen Daten wurden entfernt.",
+          });
+          onDeleted?.();
+        },
+        onError: (e) => {
+          setOpen(false);
+          toast({
+            variant: "destructive",
+            title: "Löschen fehlgeschlagen",
+            description: e.message || "Bitte später erneut versuchen.",
+          });
+        },
+      }
+    );
+  };
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={() => setOpen(true)}
+        className="bg-white/5 border-white/20 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+        title="Kunde löschen"
+        aria-label="Kunde löschen"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700">
+          <DialogHeader>
+            <DialogTitle className="text-white">
+              Kunde unwiderruflich löschen?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-gray-300">
+            Dieser Vorgang entfernt den Kunden, alle Services und alle Dateien
+            dauerhaft.
+          </p>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+              className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+            >
+              Abbrechen
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              "Unwiderruflich löschen"
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
