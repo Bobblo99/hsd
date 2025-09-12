@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
   Settings,
@@ -12,8 +11,7 @@ import {
   ArrowRight,
   ArrowLeft,
 } from "lucide-react";
-
-export type ServiceType = "rims" | "tires-purchase" | "tire-service";
+import { ServiceType } from "@/types/enums/enum";
 
 interface ServiceSelectionStepProps {
   selectedServices: ServiceType[];
@@ -28,9 +26,16 @@ export function ServiceSelectionStep({
 }: ServiceSelectionStepProps) {
   const [services, setServices] = useState<ServiceType[]>(selectedServices);
 
-  const serviceOptions = [
+  const serviceOptions: {
+    id: ServiceType;
+    title: string;
+    description: string;
+    icon: React.ReactNode;
+    color: string;
+    iconColor: string;
+  }[] = [
     {
-      id: "rims" as ServiceType,
+      id: "rims",
       title: "Felgen aufbereiten",
       description: "Lackierung, Pulverbeschichtung, Reparatur und Aufbereitung",
       icon: <Settings className="h-8 w-8" />,
@@ -38,7 +43,7 @@ export function ServiceSelectionStep({
       iconColor: "text-blue-500",
     },
     {
-      id: "tires-purchase" as ServiceType,
+      id: "tires-purchase",
       title: "Reifen kaufen",
       description: "Neue Reifen in verschiedenen Größen und Qualitäten",
       icon: <ShoppingCart className="h-8 w-8" />,
@@ -46,7 +51,7 @@ export function ServiceSelectionStep({
       iconColor: "text-green-500",
     },
     {
-      id: "tire-service" as ServiceType,
+      id: "tire-service",
       title: "Reifenservice",
       description: "Montage, Wuchten und weitere Serviceleistungen",
       icon: <Wrench className="h-8 w-8" />,
@@ -55,11 +60,9 @@ export function ServiceSelectionStep({
     },
   ];
 
-  const handleServiceToggle = (serviceId: ServiceType) => {
+  const toggleService = (id: ServiceType) => {
     setServices((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((s) => s !== serviceId)
-        : [...prev, serviceId]
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
   };
 
@@ -70,6 +73,7 @@ export function ServiceSelectionStep({
   };
 
   const isValid = services.length > 0;
+
   return (
     <Card className="bg-white/5 border-white/10">
       <CardHeader>
@@ -81,51 +85,52 @@ export function ServiceSelectionStep({
           Welche Services möchten Sie nutzen? (Mehrfachauswahl möglich)
         </p>
       </CardHeader>
+
       <CardContent className="space-y-6">
         <div className="grid gap-4">
-          {serviceOptions.map((serviceOption) => (
-            <div key={serviceOption.id} className="relative">
-              <input
-                type="checkbox"
-                id={serviceOption.id}
-                checked={services.includes(serviceOption.id)}
-                onChange={() => handleServiceToggle(serviceOption.id)}
-                className="peer sr-only"
-              />
-              <Label
-                htmlFor={serviceOption.id}
-                className={`flex items-center gap-4 p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                  services.includes(serviceOption.id)
-                    ? `${serviceOption.color} border-opacity-100`
-                    : "bg-white/5 border-white/10 hover:bg-white/10"
-                }`}
-              >
-                <div className={`${serviceOption.iconColor}`}>
-                  {serviceOption.icon}
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-white mb-2">
-                    {serviceOption.title}
-                  </h3>
-                  <p className="text-gray-400">{serviceOption.description}</p>
-                </div>
-                <div
-                  className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
-                    services.includes(serviceOption.id)
-                      ? "bg-red-500 border-red-500"
-                      : "border-white/30"
+          {serviceOptions.map((option) => {
+            const active = services.includes(option.id);
+            return (
+              <div key={option.id} className="relative">
+                <input
+                  type="checkbox"
+                  id={option.id}
+                  checked={active}
+                  onChange={() => toggleService(option.id)}
+                  className="peer sr-only"
+                />
+                <Label
+                  htmlFor={option.id}
+                  className={`flex items-center gap-4 p-6 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
+                    active
+                      ? `${option.color} border-opacity-100`
+                      : "bg-white/5 border-white/10 hover:bg-white/10"
                   }`}
                 >
-                  {services.includes(serviceOption.id) && (
-                    <div className="w-3 h-3 text-white">✓</div>
-                  )}
-                </div>
-              </Label>
-            </div>
-          ))}
+                  <div className={option.iconColor}>{option.icon}</div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      {option.title}
+                    </h3>
+                    <p className="text-gray-400">{option.description}</p>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                      active ? "bg-red-500 border-red-500" : "border-white/30"
+                    }`}
+                  >
+                    {active && (
+                      <div className="w-3 h-3 text-white font-bold">✓</div>
+                    )}
+                  </div>
+                </Label>
+              </div>
+            );
+          })}
         </div>
 
-        {services.length === 0 && (
+        {/* Feedback Boxen */}
+        {!isValid && (
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
             <p className="text-yellow-400 text-sm">
               Bitte wählen Sie mindestens einen Service aus, um fortzufahren.
@@ -133,7 +138,7 @@ export function ServiceSelectionStep({
           </div>
         )}
 
-        {services.length > 0 && (
+        {isValid && (
           <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
             <p className="text-green-400 text-sm">
               {services.length} Service{services.length > 1 ? "s" : ""}{" "}
@@ -145,6 +150,7 @@ export function ServiceSelectionStep({
           </div>
         )}
 
+        {/* Navigation */}
         <div className="flex gap-4">
           <Button
             onClick={onBack}

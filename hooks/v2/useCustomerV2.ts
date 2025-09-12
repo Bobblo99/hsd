@@ -1,29 +1,16 @@
-// hooks/v2/useCustomerV2.ts
 import { useQuery } from "@tanstack/react-query";
 import type {
   Customer,
   CustomerFile,
   CustomerService,
+  CustomerWithDetails,
+  ImageResource,
 } from "@/types/customers";
 
-/** Generischer Appwrite-Listen-Response */
 type ListResponse<T> = {
   total: number;
   documents: T[];
 };
-
-/** Bild-Ressource fürs UI (alle URLs verfügbar) */
-export type ImageResource = {
-  id: string;
-  previewUrl: string;
-  viewUrl: string;
-  downloadUrl: string;
-  purpose?: CustomerFile["purpose"];
-  order?: number;
-  notes?: string;
-};
-
-/* --------------------------------- Helpers -------------------------------- */
 
 function parseJSON<T = unknown>(s?: string): T | undefined {
   if (!s) return undefined;
@@ -34,12 +21,10 @@ function parseJSON<T = unknown>(s?: string): T | undefined {
   }
 }
 
-/** Baut eine vollständige Bildliste aus Files + (falls vorhanden) Legacy-URLs */
 function extractImages(customer: any, files: CustomerFile[]): ImageResource[] {
   const fromFiles: ImageResource[] =
     files?.map((f) => ({
       id: f.$id,
-      // diese drei Felder werden von deiner /files-API-Route mitgeliefert
       previewUrl: (f as any).previewUrl,
       viewUrl: (f as any).viewUrl,
       downloadUrl: (f as any).downloadUrl,
@@ -48,7 +33,6 @@ function extractImages(customer: any, files: CustomerFile[]): ImageResource[] {
       notes: f.notes,
     })) ?? [];
 
-  // Legacy: alte string-URLs (falls noch vorhanden)
   const legacyList: ImageResource[] = Array.isArray((customer as any).imageIds)
     ? (customer as any).imageIds
         .filter(Boolean)
@@ -60,7 +44,6 @@ function extractImages(customer: any, files: CustomerFile[]): ImageResource[] {
         }))
     : [];
 
-  // Nach "order" sortieren (nicht gesetzte ans Ende)
   return [...fromFiles, ...legacyList].sort(
     (a, b) =>
       (a.order ?? Number.MAX_SAFE_INTEGER) -
@@ -68,19 +51,8 @@ function extractImages(customer: any, files: CustomerFile[]): ImageResource[] {
   );
 }
 
-/* ---------------------------------- Hook ---------------------------------- */
-
 export function useCustomerV2(customerId: string) {
-  return useQuery<{
-    customer: Customer;
-    services: CustomerService[];
-    files: CustomerFile[];
-    images: ImageResource[]; // alle Bild-Infos (preview/view/download)
-    imageUrls: string[]; // nur Previews (praktisch für <img src=...>)
-    createdDate: string;
-    primaryService?: CustomerService;
-    servicesParsed: Array<CustomerService & { dataObj?: any }>;
-  }>({
+  return useQuery<CustomerWithDetails>({
     queryKey: ["customerV2", customerId],
     enabled: !!customerId,
     queryFn: async () => {

@@ -1,17 +1,3 @@
-// export interface Customer {
-//   $id?: string;
-//   name: string;
-//   email: string;
-//   phone: string;
-//   rimDamaged: "ja" | "nein";
-//   repairType: "lackieren" | "polieren" | "schweissen" | "pulverbeschichten";
-//   damageDescription: string;
-//   imageIds: string[];
-//   status: "eingegangen" | "in-bearbeitung" | "fertiggestellt" | "abgeholt";
-//   createdAt: string;
-//   updatedAt: string;
-// }
-
 export interface CustomerStats {
   totalCustomers: number;
   eingegangen: number;
@@ -28,11 +14,10 @@ export type CustomerStatus =
 
 export interface Customer {
   $id: string;
-  $createdAt: string; // Systemfeld von Appwrite
-  $updatedAt: string; // Systemfeld von Appwrite
+  $createdAt: string;
+  $updatedAt: string;
 
-  // Identität / Nummerierung
-  customerNumber: string; // unique
+  customerNumber: string;
   year: number;
 
   // Kontakt & Adresse
@@ -48,15 +33,12 @@ export interface Customer {
   email: string;
   phone: string;
 
-  // Aggregates (aus customerFiles)
-  imageCount: number; // default 0
-  hasImages: boolean; // default false
+  imageCount: number;
+  hasImages: boolean;
 
   // Meta
   status: CustomerStatus;
 }
-
-// -------- Dateien eines Kunden (customerFiles) --------
 
 export type CustomerFilePurpose = "rim" | "invoice" | "profile" | "other";
 
@@ -64,10 +46,8 @@ export interface CustomerFile {
   $id: string;
   $createdAt: string;
   $updatedAt: string;
-
-  // Entweder echte Relation (customer) ODER Fallback (customerId):
   customer?: string; // wenn Relationship-Attribut verfügbar
-  customerId?: string; // Fallback: string-Feld
+  customerId?: string;
 
   bucketId: string;
   fileId: string;
@@ -76,11 +56,8 @@ export interface CustomerFile {
   order?: number;
   notes?: string;
 
-  // Praktisch für den Client: precomputed Preview-URL (nicht in DB)
   previewUrl?: string;
 }
-
-// -------- Services eines Kunden (customerServices) --------
 
 export type ServiceType = "rims" | "tires-purchase" | "tire-service";
 export type ServiceStatus = "offen" | "in-bearbeitung" | "fertig" | "storniert";
@@ -111,16 +88,36 @@ export interface CustomerCreateInput {
   fullAddress: string;
   email: string;
   phone: string;
-  imageCount: number; // start: 0
-  hasImages: boolean; // start: false
+  imageCount: number;
+  hasImages: boolean;
   status: CustomerStatus;
 }
 
 export interface CustomerServiceCreateInput {
-  // entweder customer (Relation) ODER customerId (Fallback-String) – beim Create füllst du das nach dem Customer-Create
   customer?: string;
   customerId?: string;
   serviceType: ServiceType;
-  data?: string; // JSON.stringify(...)
+  data?: string;
   status?: ServiceStatus; // optional
 }
+
+export type ImageResource = {
+  id: string;
+  previewUrl: string;
+  viewUrl: string;
+  downloadUrl: string;
+  purpose?: CustomerFile["purpose"];
+  order?: number;
+  notes?: string;
+};
+
+export type CustomerWithDetails = {
+  customer: Customer;
+  services: CustomerService[];
+  files: CustomerFile[];
+  images: ImageResource[];
+  imageUrls: string[];
+  createdDate: string;
+  primaryService?: CustomerService;
+  servicesParsed: Array<CustomerService & { dataObj?: any }>;
+};

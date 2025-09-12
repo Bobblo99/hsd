@@ -6,18 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { ContactDataStep } from "@/components/customerForm/ContactDataStep";
-import { FelgenStep } from "@/components/customerForm/FelgenStep";
+import { FelgenStep } from "@/components/customerForm/RimStep/FelgenStep";
 import { ProgressBar } from "@/components/customerForm/ProgressBar";
 import { ReifenKaufenStep } from "@/components/customerForm/ReifenKaufenStep";
 import { ReifenServiceStep } from "@/components/customerForm/ReifenServiceStep";
-import {
-  ServiceSelectionStep,
-  ServiceType,
-} from "@/components/customerForm/ServiceSelectionStep";
-import { CustomerFormData } from "@/types/customer-form";
+import { ServiceSelectionStep } from "@/components/customerForm/ServiceSelectionStep";
 import { PhotoUploadStep } from "@/components/customerForm/PhotoUploadStep";
 import { useCreateCustomerWorkflowV2 } from "@/hooks/v2/useCreateCustomerWorkflowV2";
 import { toast } from "@/hooks/use-toast";
+import { CustomerFormData } from "@/types/customer-form";
+import { ServiceType } from "@/types/enums/enum";
 
 export default function KundePage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -26,7 +24,13 @@ export default function KundePage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Get total steps based on selected services
+  const orderedServices: ServiceType[] = [
+    "rims",
+    "tires-purchase",
+    "tire-service",
+  ];
+
+  // Total steps = contact + service selection + service steps + photo upload
   const getTotalSteps = () => {
     let steps = 3; // Contact + Service Selection + Photos
     if (formData.selectedServices?.includes("rims")) steps++;
@@ -35,45 +39,14 @@ export default function KundePage() {
     return steps;
   };
 
-  // Get current service for step 3+
+  // Determine current service step
   const getCurrentService = (): ServiceType | undefined => {
-    if (currentStep === 3) {
-      if (formData.selectedServices?.includes("rims")) return "rims";
-      if (formData.selectedServices?.includes("tires-purchase"))
-        return "tires-purchase";
-      if (formData.selectedServices?.includes("tire-service"))
-        return "tire-service";
-      return undefined; // Photo step
-    }
-    if (currentStep === 4) {
-      const services = formData.selectedServices || [];
-      if (services.includes("rims") && services.includes("tires-purchase"))
-        return "tires-purchase";
-      if (services.includes("rims") && services.includes("tire-service"))
-        return "tire-service";
-      if (
-        services.includes("tires-purchase") &&
-        services.includes("tire-service")
-      )
-        return "tire-service";
-      return undefined; // Photo step
-    }
-    if (currentStep === 5) {
-      const services = formData.selectedServices || [];
-      if (
-        services.includes("rims") &&
-        services.includes("tires-purchase") &&
-        services.includes("tire-service")
-      ) {
-        return "tire-service";
-      }
-      return undefined; // Photo step
-    }
-    if (currentStep === 6) {
-      return undefined; // Photo step
-    }
-    return undefined;
+    const services = formData.selectedServices || [];
+    const activeServices = orderedServices.filter((s) => services.includes(s));
+    const serviceStepIndex = currentStep - 3; // offset: 1=contact, 2=selection
+    return activeServices[serviceStepIndex];
   };
+
   const handleContactNext = (contactData: any) => {
     setFormData((prev) => ({ ...prev, ...contactData }));
     setCurrentStep(2);
@@ -87,17 +60,15 @@ export default function KundePage() {
   const handleServiceNext = (serviceData: any) => {
     const currentService = getCurrentService();
 
-    // Save current service data
     setFormData((prev) => ({
       ...prev,
       [currentService === "rims"
-        ? "felgen"
+        ? "rims"
         : currentService === "tires-purchase"
-        ? "reifenKaufen"
-        : "reifenService"]: serviceData,
+        ? "tiresPurchase"
+        : "tireService"]: serviceData,
     }));
 
-    // Move to next step or submit
     if (currentStep < getTotalSteps()) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -105,18 +76,15 @@ export default function KundePage() {
     }
   };
 
-  const isLastStep = () => {
-    const totalSteps = getTotalSteps();
-    return currentStep >= totalSteps;
-  };
+  const isLastStep = () => currentStep >= getTotalSteps();
+
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const { mutateAsync: createWorkflow, isPending } =
-    useCreateCustomerWorkflowV2();
+  const { mutateAsync: createWorkflow } = useCreateCustomerWorkflowV2();
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -140,9 +108,9 @@ export default function KundePage() {
         tireService: formData.tireService,
         photos,
       };
-      const { customer, services, uploadedFiles } = await createWorkflow(
-        completeFormData
-      );
+
+      const { customer } = await createWorkflow(completeFormData);
+
       toast({
         title: "Kunde wurde erfolgreich angelegt",
         variant: "success",
@@ -152,32 +120,12 @@ export default function KundePage() {
     } catch (error) {
       console.error("Submission error:", error);
       toast({
-        title: "Beim anlegen des Kunden ist etwas schief gegangen",
+        title: "Beim Anlegen des Kunden ist etwas schief gegangen",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
-  const getCompletedServices = (): string[] => {
-    const serviceNames = {
-      felgen: "Felgen aufbereiten",
-      "reifen-kaufen": "Reifen kaufen",
-      reifenservice: "Reifenservice",
-    };
-
-    // Show completed services based on current step
-    const completed: string[] = [];
-    if (currentStep > 3 && formData.selectedServices?.includes("rims")) {
-      completed.push(serviceNames["felgen"]);
-    }
-    if (
-      currentStep > 4 &&
-      formData.selectedServices?.includes("tires-purchase")
-    ) {
-      completed.push(serviceNames["reifen-kaufen"]);
-    }
-    return completed;
   };
 
   if (isSubmitted) {
@@ -223,10 +171,10 @@ export default function KundePage() {
         <ProgressBar
           currentStep={currentStep}
           totalSteps={getTotalSteps()}
-          completedServices={getCompletedServices()}
+          completedServices={[]} // optional erweitern
         />
 
-        {/* Form Steps */}
+        {/* Steps */}
         {currentStep === 1 && (
           <ContactDataStep
             data={{

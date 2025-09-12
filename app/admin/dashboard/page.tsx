@@ -1,224 +1,168 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Users, Clock, CheckCircle, Package, Wrench } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { USE_DUMMY_DATA } from "@/lib/config";
-import { isAuthenticated, signOutAdmin } from "@/lib/auth";
+import { useState } from "react";
 import {
-  isAuthenticated as isDummyAuthenticated,
-  signOutAdmin as signOutDummyAdmin,
-} from "@/lib/auth-dummy";
-import {
-  DashboardLayout,
-  DashboardTabs,
-  DashboardCard,
-  CustomerList,
-  CustomerStats,
-  type TabItem,
-} from "@/components/admin/dashboard";
-import { Customer } from "@/types/customers";
+  Users,
+  Clock,
+  CheckCircle,
+  Package,
+  Wrench,
+  TrendingUp,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useCustomersV2 } from "@/hooks/v2/useCustomersV2";
+import { CustomerStats } from "@/components/admin/customer-stats";
+import { CustomerList } from "@/components/admin/customer-list";
+import { CustomerWithDetails } from "@/types/customers";
 
 export default function FelgenAdminDashboard() {
-  const [isAuthenticatedState, setIsAuthenticatedState] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-  const router = useRouter();
-  const { toast } = useToast();
 
   const {
     data,
     isLoading: loadingCustomers,
     isError,
-    isSuccess,
     refetch,
   } = useCustomersV2();
-  console.log("V2 Customers:", data);
-  useEffect(() => {
-    checkAuth();
-  }, [router]);
 
-  const checkAuth = async () => {
-    try {
-      const authenticated = USE_DUMMY_DATA
-        ? await isDummyAuthenticated()
-        : await isAuthenticated();
-      if (!authenticated) {
-        router.push("/admin/login");
-      } else {
-        setIsAuthenticatedState(true);
-      }
-    } catch (error) {
-      console.error("Auth check failed:", error);
-      router.push("/admin/login");
-    } finally {
-      setIsLoading(false);
-    }
+  const filterCustomers = (
+    data: CustomerWithDetails[] | undefined,
+    status: string | "all"
+  ): CustomerWithDetails[] => {
+    if (!data) return [];
+    if (status === "all") return data;
+    return data.filter((c) => c.customer.status === status);
   };
 
-  const handleLogout = async () => {
-    try {
-      if (USE_DUMMY_DATA) {
-        await signOutDummyAdmin();
-      } else {
-        await signOutAdmin();
-      }
-      toast({
-        title: "Abgemeldet",
-        description: "Sie wurden erfolgreich abgemeldet.",
-      });
-      router.push("/admin/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
-
-  const filterCustomers = (status: Customer["status"] | "all") => {
-    if (status === "all") return data || [];
-    return data ? data.filter((c) => c.status === status) : [];
-  };
-
-  // Tabs
-  const tabs: TabItem[] = [
+  const quickLinks = [
     {
-      id: "overview",
-      label: "Übersicht",
-      shortLabel: "Start",
-      icon: <Users className="h-4 w-4" />,
-      content: (
-        <div className="space-y-4 md:space-y-6">
-          <CustomerStats />
-
-          <DashboardCard
-            title="Neue Anfragen"
-            description="Kürzlich eingegangene Felgenaufbereitungs-Anfragen"
-          >
-            <CustomerList
-              customers={filterCustomers("eingegangen")}
-              isLoading={loadingCustomers}
-              isError={isError}
-              onReload={refetch}
-            />
-          </DashboardCard>
-
-          <DashboardCard
-            title="In Bearbeitung"
-            description="Aufträge die aktuell bearbeitet werden"
-          >
-            <CustomerList
-              customers={filterCustomers("in-bearbeitung")}
-              isLoading={loadingCustomers}
-              isError={isError}
-              onReload={refetch}
-            />
-          </DashboardCard>
-          <DashboardCard
-            title="Fertiggestellt"
-            description="Aufträge die aktuell bearbeitet werden"
-          >
-            <CustomerList
-              customers={filterCustomers("fertiggestellt")}
-              isLoading={loadingCustomers}
-              isError={isError}
-              onReload={refetch}
-            />
-          </DashboardCard>
-        </div>
-      ),
+      href: "/admin/kunde",
+      label: "Alle Kunden anzeigen",
+      icon: <Users className="h-4 w-4 text-gray-400" />,
     },
     {
-      id: "eingegangen",
-      label: "Eingegangen",
-      shortLabel: "Neu",
-      icon: <Clock className="h-4 w-4" />,
-      content: (
-        <DashboardCard
-          title="Eingegangene Anfragen"
-          description="Neue Felgenaufbereitungs-Anfragen verwalten"
-        >
-          <CustomerList
-            customers={filterCustomers("eingegangen")}
-            isLoading={loadingCustomers}
-            isError={isError}
-            onReload={refetch}
-          />
-        </DashboardCard>
-      ),
+      href: "/admin/appointments",
+      label: "Termine verwalten",
+      icon: <Clock className="h-4 w-4 text-gray-400" />,
+      hidden: true,
     },
     {
-      id: "in-bearbeitung",
-      label: "Bearbeitung",
-      shortLabel: "Aktiv",
-      icon: <Package className="h-4 w-4" />,
-      content: (
-        <DashboardCard
-          title="Aufträge in Bearbeitung"
-          description="Aktuell bearbeitete Felgenaufbereitungen"
-        >
-          <CustomerList
-            customers={filterCustomers("in-bearbeitung")}
-            isLoading={loadingCustomers}
-            isError={isError}
-            onReload={refetch}
-          />
-        </DashboardCard>
-      ),
-    },
-    {
-      id: "fertiggestellt",
-      label: "Fertig",
-      shortLabel: "Done",
-      icon: <CheckCircle className="h-4 w-4" />,
-      content: (
-        <DashboardCard
-          title="Fertiggestellte Aufträge"
-          description="Abgeschlossene Felgenaufbereitungen"
-        >
-          <CustomerList
-            customers={filterCustomers("fertiggestellt")}
-            isLoading={loadingCustomers}
-            isError={isError}
-            onReload={refetch}
-          />
-        </DashboardCard>
-      ),
+      href: "/admin/reports",
+      label: "Berichte anzeigen",
+      icon: <TrendingUp className="h-4 w-4 text-gray-400" />,
+      hidden: true,
     },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticatedState) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <DashboardLayout
-      title="HSD Felgen Admin"
-      subtitle={
-        USE_DUMMY_DATA
-          ? "Felgenaufbereitungs-Verwaltung (Demo-Modus)"
-          : "Felgenaufbereitungs-Verwaltung"
-      }
-      icon={<Wrench className="h-6 w-6 text-red-500" />}
-      onLogout={handleLogout}
-    >
-      <DashboardTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
-    </DashboardLayout>
+    <div className="p-4 md:p-8">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Wrench className="h-8 w-8 text-red-500" />
+          <h1 className="text-3xl font-bold text-white">Dashboard Übersicht</h1>
+        </div>
+        <p className="text-gray-400 text-lg">
+          Zentrale Übersicht aller Geschäftsaktivitäten
+        </p>
+      </div>
+
+      {/* Stats */}
+      <div className="mb-8">
+        <CustomerStats />
+      </div>
+
+      {/* Recent Activity */}
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
+        <TabsList className="grid w-full grid-cols-3 bg-gray-800 border-white/10">
+          <TabsTrigger
+            value="overview"
+            className="flex items-center gap-2 text-gray-400 data-[state=active]:text-white data-[state=active]:bg-red-500"
+          >
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline">Neue Anfragen</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="active"
+            className="flex items-center gap-2 text-gray-400 data-[state=active]:text-white data-[state=active]:bg-red-500"
+          >
+            <Package className="h-4 w-4" />
+            <span className="hidden sm:inline">In Bearbeitung</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="completed"
+            className="flex items-center gap-2 text-gray-400 data-[state=active]:text-white data-[state=active]:bg-red-500"
+          >
+            <CheckCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Fertiggestellt</span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Clock className="h-5 w-5 text-yellow-500" />
+                Neue Anfragen ({filterCustomers(data, "eingegangen").length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomerList
+                customers={filterCustomers(data, "eingegangen")}
+                isLoading={loadingCustomers}
+                isError={isError}
+                onReload={refetch}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="active" className="space-y-6">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-500" />
+                In Bearbeitung ({filterCustomers(data, "in-bearbeitung").length}
+                )
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomerList
+                customers={filterCustomers(data, "in-bearbeitung")}
+                isLoading={loadingCustomers}
+                isError={isError}
+                onReload={refetch}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="completed" className="space-y-6">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                Fertiggestellt ({filterCustomers(data, "fertiggestellt").length}
+                )
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CustomerList
+                customers={filterCustomers(data, "fertiggestellt")}
+                isLoading={loadingCustomers}
+                isError={isError}
+                onReload={refetch}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

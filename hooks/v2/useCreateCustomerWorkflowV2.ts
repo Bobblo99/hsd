@@ -1,4 +1,3 @@
-// hooks/v2/useCreateCustomerWorkflowV2.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { validateFormData } from "@/lib/validation/validateCustomerForm";
 import { createCustomerPayloadsFromForm } from "@/lib/mappers/createCustomerFromForm";
@@ -28,19 +27,15 @@ export function useCreateCustomerWorkflowV2() {
 
   return useMutation<WorkflowResult, Error, CustomerFormData>({
     mutationFn: async (form) => {
-      console.log(form);
-      // 1) (Optional) Validierung – wenn du sie hier nicht willst, entferne sie einfach
       const errors = validateFormData(form);
       if (errors.length) {
         const msg = errors.map((e) => `${e.field}: ${e.message}`).join("\n");
         throw new Error(msg);
       }
 
-      // 2) Payloads bauen
       const { customer, services, filesToUpload } =
         createCustomerPayloadsFromForm(form);
-
-      // 3) Customer anlegen – server setzt customerNumber + year
+      console.log("Creating customer", { customer, services, filesToUpload });
       const created = await createCustomer({
         ...customer,
         status: customer.status ?? "eingegangen",
@@ -48,7 +43,6 @@ export function useCreateCustomerWorkflowV2() {
         hasImages: customer.hasImages ?? false,
       });
 
-      // 4) Services (optional)
       const createdServices: ServiceDoc[] = [];
       if (services.length) {
         const res = await Promise.all(
@@ -66,16 +60,16 @@ export function useCreateCustomerWorkflowV2() {
         createdServices.push(...(res as ServiceDoc[]));
       }
 
-      // 5) Dateien (optional) → Storage + customerFiles
+      //customer files upload
       let uploaded: { total: number } | null = null;
       if (filesToUpload.length) {
         uploaded = await uploadFiles({
           customerId: created.$id,
           files: filesToUpload,
-          purpose: "rim", // ggf. dynamisch machen
+          purpose: "rim",
         });
 
-        // 6) Aggregates am Customer aktualisieren
+        // aggregate on customer
         const add = uploaded?.total ?? 0;
         if (add > 0) {
           await updateCustomer({
@@ -88,7 +82,7 @@ export function useCreateCustomerWorkflowV2() {
         }
       }
 
-      // 7) Caches
+      // invalidate cache
       qc.invalidateQueries({ queryKey: ["customersV2"] });
       qc.invalidateQueries({ queryKey: ["customerV2", created.$id] });
 

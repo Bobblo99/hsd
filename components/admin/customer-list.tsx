@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -9,334 +13,304 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import {
-  Eye,
-  Download,
-  CheckCircle,
-  Clock,
-  MoreHorizontal,
-  Package,
-  Loader2,
-  Trash2,
-} from "lucide-react";
-import { Customer } from "@/types/customers";
-
-import { useToast } from "@/hooks/use-toast";
-import { useRef, useEffect, useState } from "react";
-import Link from "next/link";
-import { useUpdateCustomerV2 } from "@/hooks/v2/useUpdateCustomerV2";
-import { useDeleteCustomerV2 } from "@/hooks/v2/useDeleteCustomerV2";
-import {
-  DialogHeader,
-  DialogFooter,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "../ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Eye,
+  Edit,
+  Trash2,
+  Phone,
+  Mail,
+  MoreHorizontal,
+  Users,
+  Loader2,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { CustomerWithDetails } from "@/types/customers";
+import { useDeleteCustomerV2 } from "@/hooks/v2/useDeleteCustomerV2";
 
 interface CustomerListProps {
-  customers: Customer[];
-  isLoading?: boolean;
-  isError?: boolean;
-  onReload?: () => void;
-  onExport?: () => void;
+  customers: CustomerWithDetails[];
+  isLoading: boolean;
+  isError: boolean;
+  onReload: () => void;
 }
 
 export function CustomerList({
   customers,
-  isLoading = false,
-  isError = false,
+  isLoading,
+  isError,
   onReload,
-  onExport,
 }: CustomerListProps) {
+  const [deleteCustomerId, setDeleteCustomerId] = useState<string | null>(null);
+  const router = useRouter();
+  const { toast } = useToast();
+  const { mutate: deleteCustomer } = useDeleteCustomerV2();
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      eingegangen: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30",
+      "in-bearbeitung": "bg-blue-500/20 text-blue-500 border-blue-500/30",
+      fertiggestellt: "bg-green-500/20 text-green-500 border-green-500/30",
+      abgeholt: "bg-gray-500/20 text-gray-500 border-gray-500/30",
+    };
+
+    const labels = {
+      eingegangen: "Eingegangen",
+      "in-bearbeitung": "In Bearbeitung",
+      fertiggestellt: "Fertiggestellt",
+      abgeholt: "Abgeholt",
+    };
+
+    const variant =
+      variants[status as keyof typeof variants] || variants.eingegangen;
+    const label = labels[status as keyof typeof labels] || status;
+
+    return <Badge className={`${variant} border`}>{label}</Badge>;
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      setDeleteCustomerId(null);
+      deleteCustomer(
+        { id },
+        {
+          onSuccess: () => {
+            onReload();
+            toast({
+              title: "Kunde gelöscht",
+              description: "Der Kunde wurde erfolgreich gelöscht.",
+            });
+          },
+          onError: () => {
+            toast({
+              title: "Fehler",
+              description: "Kunde konnte nicht gelöscht werden.",
+              variant: "destructive",
+            });
+          },
+        }
+      );
+    } catch (error) {
+      toast({
+        title: "Fehler",
+        description: "Kunde konnte nicht gelöscht werden.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-16 bg-white/5 rounded-lg animate-pulse" />
-        ))}
-      </div>
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  if (isError || !customers || customers.length === 0) {
+  if (isError) {
     return (
-      <div className="text-center py-12">
-        <Eye className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-400">Keine Kunden gefunden</p>
-        {onReload && (
-          <Button onClick={onReload} className="mt-4">
-            Neu laden
-          </Button>
-        )}
-      </div>
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="p-6">
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400 mb-4">Fehler beim Laden der Kunden</p>
+            <Button
+              onClick={onReload}
+              variant="outline"
+              className="bg-white/5 border-white/20 text-white"
+            >
+              Erneut versuchen
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  console.log(customers);
-  return (
-    <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-      <div className="flex justify-between items-center mb-6 p-4">
-        <h3 className="text-lg font-semibold text-white">
-          {customers.length} Kunden gefunden
-        </h3>
-        {onExport && (
-          <Button
-            variant="outline"
-            className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-            onClick={onExport}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            CSV Export
-          </Button>
-        )}
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow className="border-white/10 hover:bg-white/5">
-            <TableHead className="text-gray-300">Kunde</TableHead>
-            <TableHead className="text-gray-300">Status</TableHead>
-            <TableHead className="text-gray-300">Menü</TableHead>
-            <TableHead className="text-gray-300">Detailansicht</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {customers.map((c) => (
-            <TableRow key={c.$id}>
-              <TableCell>
-                <div className="text-white font-medium">{c.firstName}</div>
-                <div className="text-gray-400 text-sm">{c.email}</div>
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={c.status} />
-              </TableCell>
-              <TableCell>
-                <StatusMenu customer={c} />
-              </TableCell>
-              <TableCell>
-                <CustomerDetailButton customerId={c.$id ?? ""} />
-              </TableCell>
-              <TableCell>
-                <DeleteCustomerButton customerId={c.$id} />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-type Props = {
-  customerId: string;
-  onDeleted?: () => void; // optional
-};
-
-export function DeleteCustomerButton({ customerId, onDeleted }: Props) {
-  const [open, setOpen] = useState(false);
-  const { toast } = useToast();
-  const { mutate: removeCustomer } = useDeleteCustomerV2();
-
-  const confirmDelete = () => {
-    removeCustomer(
-      { id: customerId },
-      {
-        onSuccess: () => {
-          setOpen(false);
-          toast({
-            variant: "success",
-            title: "Kunde gelöscht",
-            description: "Alle zugehörigen Daten wurden entfernt.",
-          });
-          onDeleted?.();
-        },
-        onError: (e) => {
-          setOpen(false);
-          toast({
-            variant: "destructive",
-            title: "Löschen fehlgeschlagen",
-            description: e.message || "Bitte später erneut versuchen.",
-          });
-        },
-      }
+  if (customers.length === 0) {
+    return (
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="p-6">
+          <div className="text-center py-12">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-400">Keine Kunden gefunden</p>
+          </div>
+        </CardContent>
+      </Card>
     );
-  };
+  }
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={() => setOpen(true)}
-        className="bg-white/5 border-white/20 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-        title="Kunde löschen"
-        aria-label="Kunde löschen"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
+      <Card className="bg-white/5 border-white/10">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10">
+                  <TableHead className="text-gray-300">Kunde</TableHead>
+                  <TableHead className="text-gray-300 hidden md:table-cell">
+                    Services
+                  </TableHead>
+                  <TableHead className="text-gray-300">Status</TableHead>
+                  <TableHead className="text-gray-300 hidden lg:table-cell">
+                    Erstellt
+                  </TableHead>
+                  <TableHead className="text-gray-300 w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {customers.map((entry) => {
+                  const customer = entry.customer;
+                  return (
+                    <TableRow
+                      key={customer.$id}
+                      className="border-white/10 hover:bg-white/5"
+                    >
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium text-white">
+                            {customer.fullName || "Unbekannt"}
+                          </div>
+                          <div className="text-sm text-gray-400 flex items-center gap-2">
+                            <Mail className="h-3 w-3" />
+                            {customer.email}
+                          </div>
+                          <div className="text-sm text-gray-400 flex items-center gap-2">
+                            <Phone className="h-3 w-3" />
+                            {customer.phone}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {entry.servicesParsed?.length ? (
+                            entry.servicesParsed.map((s: any) => (
+                              <Badge
+                                key={s.$id}
+                                className="bg-blue-500/20 text-blue-400 text-xs"
+                              >
+                                {s.serviceType === "rims"
+                                  ? "Felgen"
+                                  : s.serviceType === "tires-purchase"
+                                  ? "Reifen"
+                                  : "Service"}
+                              </Badge>
+                            ))
+                          ) : (
+                            <Badge className="bg-gray-500/20 text-gray-400 text-xs">
+                              Keine Services
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(customer.status || "eingegangen")}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="text-white text-sm">
+                          {customer.$createdAt
+                            ? new Date(customer.$createdAt).toLocaleDateString(
+                                "de-DE"
+                              )
+                            : "-"}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-gray-400 hover:text-white"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            align="end"
+                            className="bg-gray-800 border-gray-700"
+                          >
+                            <DropdownMenuItem
+                              onClick={() =>
+                                router.push(`/kunde/${customer.$id}`)
+                              }
+                              className="text-blue-400 hover:text-blue-300"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Details anzeigen
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-green-400 hover:text-green-300">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Bearbeiten
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteCustomerId(customer.$id!)}
+                              className="text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Löschen
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-white">
-              Kunde unwiderruflich löschen?
-            </DialogTitle>
-          </DialogHeader>
-          <p className="text-gray-300">
-            Dieser Vorgang entfernt den Kunden, alle Services und alle Dateien
-            dauerhaft.
-          </p>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-            >
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteCustomerId}
+        onOpenChange={() => setDeleteCustomerId(null)}
+      >
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Kunde löschen
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              Sind Sie sicher, dass Sie diesen Kunden unwiderruflich löschen
+              möchten? Diese Aktion kann nicht rückgängig gemacht werden.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-white/5 border-white/20 text-white hover:bg-white/10">
               Abbrechen
-            </Button>
-            <Button
-              type="button"
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteCustomerId && handleDelete(deleteCustomerId)}
+              className="bg-red-500 hover:bg-red-600 text-white"
             >
-              "Unwiderruflich löschen"
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              Löschen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
-  );
-}
-
-interface CustomerDetailButtonProps {
-  customerId: string;
-}
-
-export function CustomerDetailButton({
-  customerId,
-}: CustomerDetailButtonProps) {
-  return (
-    <Link
-      href={`/kunde/${customerId}`}
-      className="h-8 w-8 p-0 text-gray-400 hover:text-white transition-colors"
-      title="Kundendetails ansehen"
-    >
-      <Eye className="h-4 w-4" />
-    </Link>
-  );
-}
-
-export const statusBadgeMap: Record<
-  Customer["status"],
-  "danger" | "warning" | "success" | "info"
-> = {
-  eingegangen: "warning",
-  "in-bearbeitung": "info",
-  fertiggestellt: "success",
-  abgeholt: "info",
-};
-
-export function StatusBadge({ status }: { status: Customer["status"] }) {
-  return <Badge variant={statusBadgeMap[status]}>{status}</Badge>;
-}
-
-interface StatusMenuProps {
-  customer: Customer;
-}
-
-export function StatusMenu({ customer }: StatusMenuProps) {
-  const { toast } = useToast();
-  const menuRef = useRef<HTMLDivElement | null>(null);
-
-  const { mutate: updateCustomerV2, isPending } = useUpdateCustomerV2();
-
-  const handleChange = (status: Customer["status"]) => {
-    if (!customer?.$id) return;
-
-    updateCustomerV2(
-      { id: customer.$id, updates: { status } },
-      {
-        onSuccess: (updated) => {
-          const name =
-            updated.fullName ||
-            [updated.firstName, updated.lastName].filter(Boolean).join(" ") ||
-            "Kunde";
-          toast({
-            variant: "success",
-            title: "Status geändert",
-            description: `Der Auftrag von ${name} ist jetzt "${status}".`,
-          });
-        },
-        onError: () => {
-          toast({
-            title: "Fehler",
-            description: "Der Status konnte nicht aktualisiert werden.",
-            variant: "destructive",
-          });
-        },
-      }
-    );
-  };
-
-  useEffect(() => {
-    if (menuRef.current && gsap) {
-      gsap.fromTo(
-        menuRef.current,
-        { opacity: 0, scale: 0.9, y: -5 },
-        { opacity: 1, scale: 1, y: 0, duration: 0.25, ease: "power2.out" }
-      );
-    }
-  }, [menuRef.current]);
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 text-gray-400 hover:text-white transition-colors"
-        >
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-
-      <DropdownMenuContent
-        ref={menuRef}
-        align="end"
-        className="bg-gray-900/95 backdrop-blur-md border border-gray-700 rounded-xl shadow-lg overflow-hidden"
-      >
-        <DropdownMenuItem
-          onClick={() => handleChange("eingegangen")}
-          className="flex items-center gap-2 text-yellow-400 hover:bg-yellow-500/10 cursor-pointer px-4 py-2"
-        >
-          <Clock className="h-4 w-4" />
-          Eingegangen
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleChange("in-bearbeitung")}
-          className="flex items-center gap-2 text-blue-400 hover:bg-blue-500/10 cursor-pointer px-4 py-2"
-        >
-          <Package className="h-4 w-4" />
-          In Bearbeitung
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          onClick={() => handleChange("fertiggestellt")}
-          className="flex items-center gap-2 text-green-400 hover:bg-green-500/10 cursor-pointer px-4 py-2"
-        >
-          <CheckCircle className="h-4 w-4" />
-          Fertiggestellt
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   );
 }

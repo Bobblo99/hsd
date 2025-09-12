@@ -1,4 +1,3 @@
-// hooks/v2/useCustomerStatsV2.ts
 import { useMemo } from "react";
 import type { CustomerStats } from "@/types/customers";
 import { useCustomersV2 } from "./useCustomersV2";
@@ -19,12 +18,16 @@ export function useCustomerStatsV2() {
 
     return {
       totalCustomers: customers.length,
-      eingegangen: customers.filter((c) => c.status === "eingegangen").length,
-      inBearbeitung: customers.filter((c) => c.status === "in-bearbeitung")
+      eingegangen: customers.filter((c) => c.customer.status === "eingegangen")
         .length,
-      fertiggestellt: customers.filter((c) => c.status === "fertiggestellt")
+      inBearbeitung: customers.filter(
+        (c) => c.customer.status === "in-bearbeitung"
+      ).length,
+      fertiggestellt: customers.filter(
+        (c) => c.customer.status === "fertiggestellt"
+      ).length,
+      abgeholt: customers.filter((c) => c.customer.status === "abgeholt")
         .length,
-      abgeholt: customers.filter((c) => c.status === "abgeholt").length,
     };
   }, [customers]);
 

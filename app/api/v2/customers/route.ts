@@ -12,6 +12,7 @@ function getDatabases() {
 
 const DB_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const CUST = process.env.NEXT_PUBLIC_APPWRITE_CUSTOMERS_V2!;
+const SERV = process.env.NEXT_PUBLIC_APPWRITE_CUSTOMERS_V2_SERVICES!;
 const CNTR = process.env.NEXT_PUBLIC_APPWRITE_CUSTOMERS_V2_COUNTERS!;
 const { Query, ID } = sdk;
 
@@ -73,8 +74,30 @@ export async function GET(req: Request) {
   if (year) q.push(Query.equal("year", Number(year)));
 
   try {
-    const docs = await databases.listDocuments(DB_ID, CUST, q);
-    return NextResponse.json(docs);
+    // 1. Kunden laden
+    const customersRes = await databases.listDocuments(DB_ID, CUST, q);
+    const customers = customersRes.documents;
+
+    // 2. Alle Services laden
+    const servicesRes = await databases.listDocuments(DB_ID, SERV);
+    const services = servicesRes.documents;
+
+    // 3. Services nach customer/customerId gruppieren
+    const grouped: Record<string, any[]> = {};
+    for (const s of services) {
+      const cid = s.customer || s.customerId;
+      if (!cid) continue;
+      if (!grouped[cid]) grouped[cid] = [];
+      grouped[cid].push(s);
+    }
+
+    // 4. Kunden + Services kombinieren
+    const full = customers.map((c) => ({
+      ...c,
+      services: grouped[c.$id] || [],
+    }));
+
+    return NextResponse.json({ total: full.length, documents: full });
   } catch (err: any) {
     return NextResponse.json(
       { error: err?.message || "List failed" },

@@ -44,6 +44,15 @@ export const isAuthenticated = async (): Promise<boolean> => {
   }
 };
 
+export async function getSession() {
+  try {
+    const session = await account.get();
+    return session;
+  } catch {
+    return null;
+  }
+}
+
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
     const user = await account.get();

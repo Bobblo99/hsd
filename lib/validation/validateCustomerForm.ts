@@ -15,7 +15,7 @@ const phoneRe = /^[+()\d\s\/-]{6,}$/;
 const zipRe = /^\d{4,6}$/;
 
 type Options = {
-  /** Wenn true = wie vorher (strikt). Wenn false = Services sind optional, Details werden nur validiert wenn vorhanden. */
+  /** Wenn true = Details zwingend bei ausgewähltem Service */
   requireDetailsForSelectedService?: boolean;
 };
 
@@ -31,6 +31,7 @@ export const validateFormData = (
   // --- Kontakt
   if (!form.firstName?.trim()) push("firstName", "Vorname ist erforderlich");
   if (!form.lastName?.trim()) push("lastName", "Nachname ist erforderlich");
+
   if (!form.email?.trim()) push("email", "E-Mail ist erforderlich");
   else if (!emailRe.test(form.email.trim()))
     push("email", "E-Mail-Format ist ungültig");
@@ -49,7 +50,7 @@ export const validateFormData = (
 
   if (!form.agbAccepted) push("agbAccepted", "AGB müssen akzeptiert werden");
 
-  // --- Services Auswahl (mind. einen Service wählen – falls das auch optional sein soll, diesen Block entfernen)
+  // --- Services Auswahl
   if (!form.selectedServices?.length) {
     push("selectedServices", "Mindestens ein Service muss ausgewählt werden");
   } else {
@@ -60,29 +61,34 @@ export const validateFormData = (
       push("selectedServices", `Ungültige Services: ${invalid.join(", ")}`);
   }
 
-  // --- Service-spezifische Prüfungen
-  // STRIKT: Details sind Pflicht wenn Service gewählt
-  // LENIENT: Details nur prüfen, wenn Objekt vorhanden ist
-
-  // RIMS
+  // --- RIMS
   const rimsSelected = form.selectedServices?.includes("rims");
   if (requireDetailsForSelectedService && rimsSelected && !form.rims) {
     push("rims", "Felgen-Daten sind erforderlich");
   }
   if (form.rims) {
     if (!form.rims.count) push("rims.count", "Anzahl Felgen ist erforderlich");
+
     if (!["ja", "nein"].includes(String(form.rims.hasBent || "")))
-      push(
-        "rims.hasBent",
-        "Angabe, ob ein Schlag vorliegt (ja/nein), ist erforderlich"
-      );
+      push("rims.hasBent", "Angabe erforderlich (ja/nein)");
+
     if (!form.rims.finish?.trim())
       push("rims.finish", "Art der Aufbereitung ist erforderlich");
-    if (!form.rims.color?.trim() && !form.rims.combination?.trim())
-      push("rims.color", "Farbe/Kombination ist erforderlich");
+
+    if (form.rims.finish === "einfarbig" && !form.rims.color?.trim())
+      push("rims.color", "Farbe ist erforderlich");
+
+    if (form.rims.finish === "zweifarbig" && !form.rims.combination?.trim())
+      push("rims.combination", "Kombination ist erforderlich");
+
+    if (form.rims.hasBent === "ja" && !form.rims.damagedCount?.trim())
+      push("rims.damagedCount", "Beschädigte Anzahl ist erforderlich");
+
+    if (form.rims.sticker === "audi-sport" && !form.rims.stickerColor?.trim())
+      push("rims.stickerColor", "Aufkleber-Farbe ist erforderlich");
   }
 
-  // TIRES PURCHASE
+  // --- TIRES PURCHASE
   const tpSelected = form.selectedServices?.includes("tires-purchase");
   if (requireDetailsForSelectedService && tpSelected && !form.tiresPurchase) {
     push("tiresPurchase", "Reifen-Kauf-Daten sind erforderlich");
@@ -92,6 +98,7 @@ export const validateFormData = (
       push("tiresPurchase.quantity", "Stückzahl ist erforderlich");
     if (!form.tiresPurchase.size?.trim())
       push("tiresPurchase.size", "Reifengröße ist erforderlich");
+
     if (!form.tiresPurchase.usage?.trim())
       push("tiresPurchase.usage", "Einsatzart ist erforderlich");
 
@@ -100,25 +107,26 @@ export const validateFormData = (
         "tiresPurchase.brandPreference",
         "Hersteller/Präferenz ist erforderlich"
       );
-    else if (
+
+    if (
       form.tiresPurchase.brandPreference === "gezielt" &&
       !form.tiresPurchase.targetBrand?.trim()
     ) {
-      push("tiresPurchase.targetBrand", "Gezielte Marke ist erforderlich");
+      push("tiresPurchase.specificBrand", "Gezielte Marke ist erforderlich");
     }
   }
 
-  // TIRE SERVICE
+  // --- TIRE SERVICE
   const tsSelected = form.selectedServices?.includes("tire-service");
   if (requireDetailsForSelectedService && tsSelected && !form.tireService) {
     push("tireService", "Reifen-Service-Daten sind erforderlich");
   }
   if (form.tireService) {
     if (!form.tireService.mountService?.trim())
-      push("tireService.mountService", "Montageservice ist erforderlich");
+      push("tireService.mountingService", "Montageservice ist erforderlich");
   }
 
-  // --- Bilder
+  // --- Fotos
   if (form.photos) {
     if (form.photos.length > MAX_PHOTOS)
       push("photos", `Maximal ${MAX_PHOTOS} Fotos erlaubt`);

@@ -1,9 +1,17 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Mail, Phone, MessageCircle, MapPin, Send, Clock, Star } from 'lucide-react';
+import React, { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  Mail,
+  Phone,
+  MessageCircle,
+  MapPin,
+  Send,
+  Clock,
+  Star,
+} from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,13 +20,13 @@ export default function HSDContactSection() {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const contactInfoRef = useRef<HTMLDivElement>(null);
-  
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    service: '',
-    message: ''
+    name: "",
+    email: "",
+    phone: "",
+    service: "",
+    message: "",
   });
 
   useEffect(() => {
@@ -26,54 +34,74 @@ export default function HSDContactSection() {
     const title = titleRef.current;
     const form = formRef.current;
     const contactInfo = contactInfoRef.current;
-    
+
     if (!section || !title || !form || !contactInfo) return;
 
     ScrollTrigger.create({
       trigger: section,
-      start: 'top 75%',
+      start: "top 75%",
       onEnter: () => {
         const tl = gsap.timeline();
-        
+
         // Enhanced title animation
-        const titleText = title.textContent || '';
-        title.innerHTML = titleText.split('').map(char => 
-          char === ' ' ? ' ' : `<span class="inline-block" style="transform: translateY(50px); opacity: 0;">${char}</span>`
-        ).join('');
-        
+        const titleText = title.textContent || "";
+        title.innerHTML = titleText
+          .split("")
+          .map((char) =>
+            char === " "
+              ? " "
+              : `<span class="inline-block" style="transform: translateY(50px); opacity: 0;">${char}</span>`
+          )
+          .join("");
+
         tl.to(title.children, {
           y: 0,
           opacity: 1,
           duration: 0.8,
           stagger: 0.04,
-          ease: "power3.out"
+          ease: "power3.out",
         })
-        .fromTo(form,
-          { x: -40, opacity: 0, scale: 0.95 },
-          { x: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" }, "-=0.5"
-        )
-        .fromTo(contactInfo.children,
-          { x: 40, opacity: 0, scale: 0.95 },
-          { x: 0, opacity: 1, scale: 1, duration: 0.7, stagger: 0.08, ease: "power3.out" }, "-=0.6"
-        );
-      }
+          .fromTo(
+            form,
+            { x: -40, opacity: 0, scale: 0.95 },
+            { x: 0, opacity: 1, scale: 1, duration: 0.7, ease: "power3.out" },
+            "-=0.5"
+          )
+          .fromTo(
+            contactInfo.children,
+            { x: 40, opacity: 0, scale: 0.95 },
+            {
+              x: 0,
+              opacity: 1,
+              scale: 1,
+              duration: 0.7,
+              stagger: 0.08,
+              ease: "power3.out",
+            },
+            "-=0.6"
+          );
+      },
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Form submission logic would go here
-    console.log('Form submitted:', formData);
+    console.log("Form submitted:", formData);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -85,7 +113,7 @@ export default function HSDContactSection() {
     >
       {/* Background gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-gray-900 to-black"></div>
-      
+
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-20">
           <h2
@@ -98,14 +126,12 @@ export default function HSDContactSection() {
 
         <div className="grid lg:grid-cols-2 gap-16">
           {/* Contact Form */}
-          <form
-            ref={formRef}
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h3 className="text-2xl font-semibold text-white mb-6">Anfrage senden</h3>
-              
+              <h3 className="text-2xl font-semibold text-white mb-6">
+                Anfrage senden
+              </h3>
+
               <div className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
@@ -122,7 +148,7 @@ export default function HSDContactSection() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-2 text-gray-300">
                       Telefon
@@ -163,10 +189,18 @@ export default function HSDContactSection() {
                     onChange={handleInputChange}
                     className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-300 text-white"
                   >
-                    <option value="" className="bg-black">Service auswählen</option>
-                    <option value="handel" className="bg-black">Handel - Felgen/Reifen</option>
-                    <option value="service" className="bg-black">Service - Montage/Wuchten</option>
-                    <option value="dienstleistung" className="bg-black">Dienstleistung - Aufbereitung</option>
+                    <option value="" className="bg-black">
+                      Service auswählen
+                    </option>
+                    <option value="handel" className="bg-black">
+                      Handel - Felgen/Reifen
+                    </option>
+                    <option value="service" className="bg-black">
+                      Service - Montage/Wuchten
+                    </option>
+                    <option value="dienstleistung" className="bg-black">
+                      Dienstleistung - Aufbereitung
+                    </option>
                   </select>
                 </div>
 
@@ -204,7 +238,7 @@ export default function HSDContactSection() {
               </h3>
 
               <div className="space-y-6">
-                <a 
+                <a
                   href="mailto:info@hsd-gmbh.com"
                   className="flex items-center gap-4 group cursor-pointer p-3 rounded-xl hover:bg-white/5 hover:scale-105 transition-all duration-300"
                 >
@@ -217,7 +251,7 @@ export default function HSDContactSection() {
                   </div>
                 </a>
 
-                <a 
+                <a
                   href="tel:+4917612345678"
                   className="flex items-center gap-4 group cursor-pointer p-3 rounded-xl hover:bg-white/5 hover:scale-105 transition-all duration-300"
                 >
@@ -230,7 +264,7 @@ export default function HSDContactSection() {
                   </div>
                 </a>
 
-                <a 
+                <a
                   href="https://wa.me/4917612345678"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -251,7 +285,10 @@ export default function HSDContactSection() {
                   </div>
                   <div>
                     <div className="font-medium text-white">Adresse</div>
-                    <div className="text-gray-400">Musterstraße 123<br />12345 Musterstadt</div>
+                    <div className="text-gray-400">
+                      Untere au 5<br />
+                      74239 Hardthausen am Kocher
+                    </div>
                   </div>
                 </div>
 
@@ -261,7 +298,11 @@ export default function HSDContactSection() {
                   </div>
                   <div>
                     <div className="font-medium text-white">Öffnungszeiten</div>
-                    <div className="text-gray-400">Mo-Fr: 8:00-18:00<br />Sa: 9:00-14:00</div>
+                    <div className="text-gray-400">
+                      Mo-Fr: 8:00-18:00
+                      <br />
+                      Sa: 9:00-14:00
+                    </div>
                   </div>
                 </div>
               </div>
@@ -269,8 +310,10 @@ export default function HSDContactSection() {
 
             {/* Quick Actions */}
             <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-              <h4 className="text-xl font-semibold mb-6 text-white">Schnellkontakt</h4>
-              
+              <h4 className="text-xl font-semibold mb-6 text-white">
+                Schnellkontakt
+              </h4>
+
               <div className="grid grid-cols-2 gap-4">
                 <a
                   href="https://wa.me/4917612345678"
@@ -279,15 +322,19 @@ export default function HSDContactSection() {
                   className="flex flex-col items-center gap-2 p-4 bg-green-500/20 rounded-xl hover:bg-green-500/25 hover:scale-105 transition-all duration-300 text-center"
                 >
                   <MessageCircle size={24} className="text-green-500" />
-                  <span className="text-sm font-medium text-white">WhatsApp</span>
+                  <span className="text-sm font-medium text-white">
+                    WhatsApp
+                  </span>
                 </a>
-                
+
                 <a
                   href="tel:+4917612345678"
                   className="flex flex-col items-center gap-2 p-4 bg-blue-500/20 rounded-xl hover:bg-blue-500/25 hover:scale-105 transition-all duration-300 text-center"
                 >
                   <Phone size={24} className="text-blue-500" />
-                  <span className="text-sm font-medium text-white">Anrufen</span>
+                  <span className="text-sm font-medium text-white">
+                    Anrufen
+                  </span>
                 </a>
               </div>
             </div>
@@ -302,7 +349,8 @@ export default function HSDContactSection() {
             HSD GmbH
           </div>
           <div className="text-gray-400 text-sm text-center md:text-right">
-            © 2025 HSD GmbH. Alle Rechte vorbehalten.<br />
+            © 2025 HSD GmbH. Alle Rechte vorbehalten.
+            <br />
             Handel • Service • Dienstleistung
           </div>
         </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Mail, Phone, MessageCircle, MapPin, Clock } from 'lucide-react';
+import React, { useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Mail, Phone, MessageCircle, MapPin, Clock } from "lucide-react";
+import { CookieSettingsButton } from "./cookies/CookieSettingsButton";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -14,29 +15,30 @@ export default function Footer() {
   useEffect(() => {
     const footer = footerRef.current;
     const content = contentRef.current;
-    
+
     if (!footer || !content) return;
 
     ScrollTrigger.create({
       trigger: footer,
-      start: 'top 90%',
+      start: "top 90%",
       onEnter: () => {
-        gsap.fromTo(content.children,
+        gsap.fromTo(
+          content.children,
           { y: 30, opacity: 0 },
           { y: 0, opacity: 1, duration: 0.6, stagger: 0.1, ease: "power2.out" }
         );
-      }
+      },
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, []);
 
   const scrollToSection = (sectionId: string) => {
     const section = document.getElementById(sectionId);
     if (section) {
-      section.scrollIntoView({ behavior: 'smooth' });
+      section.scrollIntoView({ behavior: "smooth" });
     }
   };
 
@@ -49,12 +51,11 @@ export default function Footer() {
         <div className="grid md:grid-cols-4 gap-12 mb-12">
           {/* Company Info */}
           <div className="md:col-span-2">
-            <div className="text-3xl font-bold text-red-500 mb-6">
-              HSD GmbH
-            </div>
+            <div className="text-3xl font-bold text-red-500 mb-6">HSD GmbH</div>
             <p className="text-gray-400 mb-6 leading-relaxed">
-              Ihr Partner für professionelle Felgenaufbereitung, Reifenservice und Handel. 
-              Mit jahrelanger Erfahrung und modernster Technik sorgen wir für höchste Qualität.
+              Ihr Partner für professionelle Felgenaufbereitung, Reifenservice
+              und Handel. Mit jahrelanger Erfahrung und modernster Technik
+              sorgen wir für höchste Qualität.
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -82,18 +83,22 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-6">Navigation</h4>
+            <h4 className="text-lg font-semibold text-white mb-6">
+              Navigation
+            </h4>
             <ul className="space-y-3">
-              {['Home', 'Handel', 'Service', 'Dienstleistung', 'Kontakt'].map((item) => (
-                <li key={item}>
-                  <button
-                    onClick={() => scrollToSection(item.toLowerCase())}
-                    className="text-gray-400 hover:text-red-500 transition-colors duration-300"
-                  >
-                    {item}
-                  </button>
-                </li>
-              ))}
+              {["Home", "Handel", "Service", "Dienstleistung", "Kontakt"].map(
+                (item) => (
+                  <li key={item}>
+                    <button
+                      onClick={() => scrollToSection(item.toLowerCase())}
+                      className="text-gray-400 hover:text-red-500 transition-colors duration-300"
+                    >
+                      {item}
+                    </button>
+                  </li>
+                )
+              )}
             </ul>
           </div>
 
@@ -104,35 +109,36 @@ export default function Footer() {
               <div className="flex items-start gap-3">
                 <MapPin size={16} className="text-red-500 mt-1 flex-shrink-0" />
                 <div className="text-gray-400 text-sm">
-                  Musterstraße 123<br />
-                  12345 Musterstadt
+                  Untere au 5<br />
+                  74239 Hardthausen am Kocher
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Phone size={16} className="text-red-500 flex-shrink-0" />
-                <a 
+                <a
                   href="tel:+4917612345678"
                   className="text-gray-400 text-sm hover:text-red-500 transition-colors duration-300"
                 >
                   +49 176 12345678
                 </a>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Mail size={16} className="text-red-500 flex-shrink-0" />
-                <a 
+                <a
                   href="mailto:info@hsd-gmbh.com"
                   className="text-gray-400 text-sm hover:text-red-500 transition-colors duration-300"
                 >
                   info@hsd-gmbh.com
                 </a>
               </div>
-              
+
               <div className="flex items-start gap-3">
                 <Clock size={16} className="text-red-500 mt-1 flex-shrink-0" />
                 <div className="text-gray-400 text-sm">
-                  Mo-Fr: 8:00-18:00<br />
+                  Mo-Fr: 8:00-18:00
+                  <br />
                   Sa: 9:00-14:00
                 </div>
               </div>
@@ -156,7 +162,9 @@ export default function Footer() {
               </p>
             </div>
             <div className="text-center">
-              <h5 className="text-red-500 font-semibold mb-3">Dienstleistung</h5>
+              <h5 className="text-red-500 font-semibold mb-3">
+                Dienstleistung
+              </h5>
               <p className="text-gray-400 text-sm">
                 Lackierung • Pulverbeschichtung • Reparatur
               </p>
